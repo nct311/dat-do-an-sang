@@ -6,64 +6,181 @@
 <title>Xôi - Bánh Mì - Drink | Đặt đồ ăn sáng</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#FFF8DC;color:#222;line-height:1.5}
-header{background:#FFD23F;padding:18px 14px;text-align:center;border-bottom:4px solid #222}
-header h1{font-size:26px;letter-spacing:.5px}
-header p{font-size:14px;margin-top:4px}
-header .phone{font-weight:700;font-size:17px;margin-top:4px}
-nav{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:12px;background:#fff;border-bottom:1px solid #eee;position:sticky;top:0;z-index:10}
-nav button{border:2px solid #222;background:#fff;border-radius:999px;padding:8px 14px;font-weight:700;cursor:pointer}
-nav button.active{background:#FFD23F}
-main{max-width:860px;margin:0 auto;padding:16px 12px 120px}
+:root{
+  --brand:#FFD23F; --brand-deep:#FF9E00; --orange:#FF6B00;
+  --ink:#241f14; --muted:#6b6455;
+  --bg:#FFF6DB; --bg-soft:#FFFDF4; --card:#ffffff; --line:#f0e3b2; --red:#c1272d;
+  --green:#16a34a; --green-dark:#14532d; --blue:#2563eb; --blue-dark:#1e40af;
+  --radius:20px;
+  --shadow:0 10px 28px rgba(80,50,0,.10); --shadow-sm:0 2px 10px rgba(80,50,0,.07);
+  --space:16px;
+}
+html{-webkit-text-size-adjust:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;font-size:16px}
+button{font-family:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+
+/* ===== Hero banner: storefront ===== */
+header{position:relative;overflow:hidden;background:linear-gradient(135deg,#FFD23F 0%,#FFB800 45%,#FF8A00 78%,#FF6B00 100%);padding:34px 18px 26px;text-align:center;color:#241f14}
+header::before{content:"🍚  🥖  🥤  🍋  🥚";position:absolute;left:0;right:0;bottom:-14px;font-size:44px;letter-spacing:22px;opacity:.16;white-space:nowrap;pointer-events:none}
+header::after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.22);top:-90px;right:-60px;pointer-events:none}
+header .hero-eyebrow{display:inline-block;background:rgba(255,255,255,.9);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#8a5a00}
+header h1{font-size:36px;letter-spacing:.5px;font-weight:900;margin-top:12px;text-shadow:0 2px 0 rgba(255,255,255,.35)}
+header .tagline{font-size:17px;margin-top:8px;font-weight:700}
+header .addr{font-size:15px;margin-top:6px;font-weight:600;opacity:.9}
+.hero-badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.hero-badges span{background:rgba(36,31,20,.88);color:#FFD23F;border-radius:999px;padding:7px 13px;font-size:13.5px;font-weight:800}
+.contact-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px;position:relative;z-index:1}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:46px;padding:9px 18px;background:#fff;border-radius:999px;font-weight:800;font-size:15px;color:var(--ink);text-decoration:none;box-shadow:0 4px 14px rgba(60,30,0,.22);transition:transform .15s ease}
+.chip:hover{transform:translateY(-2px)}
+.chip small{font-weight:600;color:var(--muted)}
+
+/* ===== Sticky nav ===== */
+nav{position:sticky;top:0;z-index:10;display:flex;gap:8px;padding:10px 12px;background:rgba(255,253,244,.97);box-shadow:0 2px 14px rgba(60,40,0,.10);overflow-x:auto;scrollbar-width:none;backdrop-filter:blur(6px)}
+nav::-webkit-scrollbar{display:none}
+nav button{flex:1 0 auto;min-height:46px;padding:10px 18px;border:2px solid #e8ddba;background:#fff;border-radius:999px;font-weight:800;font-size:15px;cursor:pointer;white-space:nowrap;color:var(--ink);transition:background .15s ease,transform .15s ease}
+nav button:hover{transform:translateY(-1px)}
+nav button.active{background:linear-gradient(135deg,#FFD23F,#FFB800);border-color:var(--ink)}
+
+main{max-width:920px;margin:0 auto;padding:24px 14px 170px}
 section{display:none}
 section.active{display:block}
+.section-head{margin:4px 2px 16px}
+.section-head h2{font-size:23px;font-weight:900}
+.section-head p{color:var(--muted);font-size:15px;margin-top:4px}
 h2{margin:6px 0 12px;font-size:20px}
-.card{background:#fff;border:2px solid #222;border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:3px 3px 0 #222}
-label{display:block;font-weight:700;margin:10px 0 4px;font-size:14px}
-input,textarea,select{width:100%;padding:11px;border:2px solid #222;border-radius:10px;font-size:16px;background:#fff}
-button.btn{background:#FFD23F;border:2px solid #222;border-radius:10px;padding:12px 18px;font-weight:800;cursor:pointer;font-size:16px;box-shadow:2px 2px 0 #222}
-button.btn:active{transform:translate(2px,2px);box-shadow:none}
+h3{font-size:17px;margin-bottom:4px}
+
+/* ===== Cards & forms ===== */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px;box-shadow:var(--shadow)}
+label{display:block;font-weight:800;margin:14px 0 6px;font-size:15px}
+label .required{color:var(--red)}
+input,textarea,select{width:100%;padding:13px 14px;border:2px solid #e5d9a8;border-radius:12px;font-size:16px;background:#fffdf5;color:var(--ink);transition:border-color .15s ease,box-shadow .15s ease}
+input:focus,textarea:focus,select:focus{border-color:var(--ink);outline:none;box-shadow:0 0 0 3px rgba(255,210,63,.5)}
+.field-icon{position:relative}
+.field-icon>span{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;pointer-events:none}
+.field-icon input{padding-left:44px}
+.form-section{background:#fffdf5;border:1px dashed #e5d9a8;border-radius:16px;padding:16px;margin-top:16px}
+.form-section .hint{color:var(--muted);font-size:14px;margin-top:8px}
+button.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;background:var(--brand);border:2px solid var(--ink);border-radius:14px;padding:12px 20px;font-weight:800;cursor:pointer;font-size:16px;color:var(--ink);box-shadow:0 3px 0 var(--ink);transition:transform .12s ease,box-shadow .12s ease}
+button.btn:hover{transform:translateY(-1px)}
+button.btn:active{transform:translateY(2px);box-shadow:none}
 button.btn.secondary{background:#fff}
-button.btn.small{padding:7px 10px;font-size:14px}
-button.btn.danger{background:#ff6b6b;color:#fff}
-.tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
-.tabs button{flex:1;min-width:90px;padding:10px;border:2px solid #222;border-radius:999px;background:#fff;font-weight:700;cursor:pointer}
-.tabs button.active{background:#222;color:#FFD23F}
-.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 4px;border-bottom:1px dashed #ccc}
-.item:last-child{border-bottom:none}
-.item .name{font-weight:700}
-.item .price{color:#b3261e;font-weight:800;white-space:nowrap}
+button.btn.small{min-height:44px;padding:10px 16px;font-size:15px;box-shadow:0 2px 0 var(--ink)}
+button.btn.danger{background:#ef4444;border-color:#991b1b;color:#fff;box-shadow:0 3px 0 #991b1b}
+button.btn.confirm{background:#16a34a;border-color:#14532d;color:#fff;box-shadow:0 3px 0 #14532d}
+button.btn.done{background:#2563eb;border-color:#1e40af;color:#fff;box-shadow:0 3px 0 #1e40af}
+button.btn.sms{background:#22c55e;border-color:#15803d;color:#fff;box-shadow:0 3px 0 #15803d}
+button.btn.zalo{background:#2563eb;border-color:#1e40af;color:#fff;box-shadow:0 3px 0 #1e40af}
+button.btn-dark{background:var(--ink);border-color:var(--ink);color:var(--brand);box-shadow:0 3px 0 #000}
+button.btn-block{width:100%;min-height:58px;font-size:18px}
+button.btn-cta{background:linear-gradient(135deg,#FFD23F,#FF9E00);border:2px solid var(--ink);box-shadow:0 4px 0 var(--ink)}
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.tabs button{flex:1;min-width:90px;min-height:48px;padding:10px 12px;border:2px solid #e5d9a8;border-radius:999px;background:#fff;font-weight:800;font-size:15px;cursor:pointer;color:var(--ink);transition:background .15s ease}
+.tabs button.active{background:var(--ink);color:var(--brand);border-color:var(--ink)}
+
+/* ===== Search ===== */
+.search-wrap{position:relative;margin-bottom:14px}
+.search-wrap .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;pointer-events:none}
+.search-wrap input{padding-left:44px;border-radius:999px}
+
+/* ===== Menu: two-column dish grid ===== */
+.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.menu-grid>.card,.menu-grid>.muted{grid-column:1/-1}
+.dish{display:flex;gap:12px;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow-sm);transition:transform .15s ease,box-shadow .15s ease}
+.dish:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.dish:active{transform:scale(.985)}
+.dish-icon{flex:0 0 auto;width:58px;height:58px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px}
+.dish-icon.icon-xoi{background:linear-gradient(135deg,#FEF3C7,#FDE68A)}
+.dish-icon.icon-banhmi{background:linear-gradient(135deg,#FFEDD5,#FED7AA)}
+.dish-icon.icon-drink{background:linear-gradient(135deg,#CFFAFE,#BAE6FD)}
+.dish-body{flex:1;min-width:0}
+.dish .name{font-weight:800;font-size:17px;line-height:1.3}
+.dish .dish-hint{font-size:13.5px;color:var(--muted);margin-top:2px}
+.dish .price{color:var(--red);font-weight:900;font-size:18px;margin-top:4px;white-space:nowrap}
+.dish .cat-label{display:inline-block;font-size:12px;font-weight:800;color:var(--muted);background:#f5ecd0;border-radius:999px;padding:2px 8px;margin-top:4px}
+.dish-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
 .qty{display:flex;align-items:center;gap:8px}
-.qty button{width:34px;height:34px;border-radius:50%;border:2px solid #222;background:#FFD23F;font-size:18px;font-weight:800;cursor:pointer}
-.qty span{min-width:22px;text-align:center;font-weight:800}
-#cartbar{position:fixed;left:0;right:0;bottom:0;background:#222;color:#fff;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;z-index:20}
-#cartbar .total{font-weight:800;font-size:18px}
-#cartbar button{background:#FFD23F;border:none;border-radius:999px;padding:10px 16px;font-weight:800;cursor:pointer}
-.msg{padding:10px;border-radius:10px;margin:10px 0;font-weight:600}
-.msg.err{background:#ffe0e0;border:2px solid #c00}
-.msg.ok{background:#dcffe0;border:2px solid #090}
-pre.order-text{background:#111;color:#0f0;padding:14px;border-radius:10px;white-space:pre-wrap;word-break:break-word;font-size:14px;overflow:auto}
-.order{border:2px solid #222;border-radius:12px;padding:12px;margin-bottom:12px;background:#fff}
-.order.new{border-color:#e00;background:#fff3f3;box-shadow:0 0 0 3px #ffcccc}
-.order .head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:800}
-.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;border:2px solid #222}
-.badge.moi{background:#FFD23F}
-.badge.xac-nhan{background:#bfe3ff}
-.badge.hoan-thanh{background:#c8f7c5}
-.badge.huy{background:#ffc9c9}
-.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.muted{color:#666;font-size:14px}
+.qty button{width:44px;height:44px;border-radius:50%;border:2px solid var(--ink);background:var(--brand);font-size:20px;font-weight:900;cursor:pointer;line-height:1;transition:transform .12s ease}
+.qty button:active{transform:scale(.92)}
+.qty span{min-width:26px;text-align:center;font-weight:900;font-size:17px}
+.btn-add{min-height:44px;padding:10px 18px;border-radius:999px;border:2px solid var(--ink);background:var(--ink);color:var(--brand);font-weight:900;font-size:15px;cursor:pointer;transition:transform .12s ease}
+.btn-add:active{transform:translateY(2px)}
+
+/* Cart lines reuse the simple .item row */
+.item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px;border:1px solid var(--line);border-radius:16px;margin-bottom:10px;background:#fffdf5;box-shadow:var(--shadow-sm)}
+.item:last-child{margin-bottom:0}
+.item .name{font-weight:800;font-size:17px}
+.item .price{color:var(--red);font-weight:900;font-size:18px;margin-top:2px;white-space:nowrap}
+.item-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+
+/* ===== Floating pill cart bar ===== */
+#cartbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;width:min(920px,calc(100% - 24px));background:#241f14;color:#fff;padding:10px 10px 10px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px;z-index:20;border-radius:999px;box-shadow:0 14px 34px rgba(0,0,0,.38)}
+#cartbar .total{font-weight:900;font-size:19px;color:var(--brand)}
+#cartbar button{background:linear-gradient(135deg,#FFD23F,#FFB800);border:none;border-radius:999px;padding:12px 20px;font-weight:900;cursor:pointer;font-size:15px;min-height:46px;color:var(--ink);white-space:nowrap}
+
+/* ===== Messages, orders ===== */
+.msg{padding:12px 14px;border-radius:12px;margin:12px 0;font-weight:600;font-size:15px}
+.msg.err{background:#fff7ed;border:2px solid #f59e0b;color:#7c2d12}
+.msg.ok{background:#dcfce7;border:2px solid #16a34a;color:#14532d}
+.note-pill{display:inline-block;background:#FFF3C4;border:1px solid #f0d060;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;color:#5b4a00;margin-bottom:12px}
+.cancel-notice{background:#FEF3C7;border:2px solid #f59e0b;border-left:6px solid #f59e0b;border-radius:14px;padding:12px 14px;margin:6px 0;font-weight:700;color:#7c2d12}
+pre.order-text{background:#141210;color:#4ade80;padding:16px;border-radius:14px;white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.6;overflow:auto}
+.order{border:1px solid var(--line);border-left:6px solid #d6c48a;border-radius:18px;padding:16px;margin-bottom:14px;background:#fff;box-shadow:var(--shadow-sm);transition:transform .15s ease}
+.order:hover{transform:translateY(-1px)}
+.order.st-moi{border-left-color:#f5b800}
+.order.st-xac-nhan{border-left-color:#2563eb}
+.order.st-hoan-thanh{border-left-color:#16a34a}
+.order.st-huy{border-left-color:#ef4444}
+.order.new{border-color:#e11d48;background:#fff5f5;box-shadow:0 0 0 3px #fecdd3}
+.order .head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:900;font-size:17px;align-items:center}
+.order .meta{color:#555;font-size:15px;margin:6px 0;line-height:1.7}
+.order .meta b{color:var(--ink)}
+.order-items{list-style:none;margin:8px 0 0}
+.order-items li{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed #f0e3b2;font-size:15.5px}
+.order-items li:last-child{border-bottom:none}
+.order-items .line-total{font-weight:800;white-space:nowrap}
+.order-total{display:flex;justify-content:space-between;align-items:center;border-top:2px dashed #e5d9a8;padding-top:10px;margin-top:10px;font-size:19px;font-weight:900}
+.order-total .amount{color:var(--red)}
+.badge{display:inline-block;padding:4px 12px;border-radius:999px;font-size:14px;font-weight:900}
+.badge.moi{background:var(--brand)}
+.badge.xac-nhan{background:#bfdbfe}
+.badge.hoan-thanh{background:#bbf7d0}
+.badge.huy{background:#fecaca}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.btn-grid .btn{width:100%}
+.muted{color:var(--muted);font-size:15px}
 .hidden{display:none!important}
-@media(max-width:560px){header h1{font-size:21px}main{padding-bottom:140px}}
+.success-head{display:flex;align-items:center;gap:12px}
+.success-head .check{flex:0 0 auto;width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#bbf7d0,#16a34a);border:3px solid #16a34a;display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;box-shadow:0 6px 16px rgba(22,163,74,.35)}
+.authbar-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#cancel-notices .msg{margin:6px 0}
+@media(max-width:640px){
+  header h1{font-size:27px}
+  header::before{font-size:32px}
+  .menu-grid{grid-template-columns:1fr}
+  .dish{flex-wrap:wrap}
+  .dish-controls{width:100%;justify-content:space-between}
+  .btn-grid{grid-template-columns:1fr}
+  main{padding-bottom:180px}
+  nav{flex-wrap:nowrap;justify-content:flex-start}
+  nav button{flex:0 0 auto}
+  .card{padding:16px}
+}
 </style>
 </head>
 <body>
 <header>
+  <span class="hero-eyebrow">Ăn sáng • Phú Đô • Hà Nội</span>
   <h1>🍜 XÔI - BÁNH MÌ - DRINK</h1>
-  <p>Ăn sáng ngon - nhanh - nóng hổi</p>
-  <p>Số 61, ngõ 54 Lê Quang Đạo, Phú Đô, Từ Liêm, Hà Nội</p>
-  <p class="phone">📞 0358.96.1119</p>
-  <p>Đặt qua SMS / Zalo: <b>0355 368 270</b></p>
+  <p class="tagline">Ăn sáng ngon — nhanh — nóng hổi mỗi sáng</p>
+  <p class="addr">📍 Số 61, ngõ 54 Lê Quang Đạo, Phú Đô, Từ Liêm, Hà Nội</p>
+  <div class="hero-badges"><span>🔥 Nóng hổi mỗi sáng</span><span>🛵 Giao tận nơi</span><span>💸 Chỉ từ 8.000đ</span></div>
+  <div class="contact-row">
+    <a class="chip" href="tel:0358961119">📞 Gọi quán: 0358.96.1119</a>
+    <a class="chip" href="sms:0355368270">💬 SMS / Zalo: 0355 368 270</a>
+  </div>
 </header>
 <nav>
   <button id="nav-menu" class="active" onclick="showSection('sec-menu')">🍽️ Đặt món</button>
@@ -108,45 +225,55 @@ pre.order-text{background:#111;color:#0f0;padding:14px;border-radius:10px;white-
 
   <!-- ĐẶT MÓN -->
   <section id="sec-menu">
-    <h2>🍽️ Thực đơn</h2>
-    <div class="tabs">
-      <button id="cat-xoi" class="active" onclick="setCat('xoi')">🍚 Xôi Nóng</button>
-      <button id="cat-banhmi" onclick="setCat('banhmi')">🥖 Bánh Mì</button>
-      <button id="cat-drink" onclick="setCat('drink')">🥤 Drink</button>
+    <div class="section-head">
+      <h2>🍽️ Thực đơn sáng nay</h2>
+      <p>Chọn món, bấm “+ Thêm” — giỏ hàng luôn hiện tổng tiền ở dưới cùng.</p>
     </div>
-    <div class="card" id="menu-list"><p class="muted">Đang tải thực đơn...</p></div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="menu-search" type="search" placeholder="Tìm món: xôi trứng, bánh mì pate, trà chanh..." oninput="onMenuSearch(this.value)" aria-label="Tìm món">
+    </div>
+    <div class="tabs">
+      <button id="cat-xoi" class="active" onclick="setCat('xoi')">🍚 Xôi Nóng (11)</button>
+      <button id="cat-banhmi" onclick="setCat('banhmi')">🥖 Bánh Mì (12)</button>
+      <button id="cat-drink" onclick="setCat('drink')">🥤 Drink (5)</button>
+    </div>
+    <div id="menu-list" class="menu-grid"><p class="muted">Đang tải thực đơn...</p></div>
 
-    <div class="card" id="cart-card">
+    <div class="card" id="cart-card" style="margin-top:18px">
       <h2>🧺 Giỏ hàng</h2>
       <div id="cart-list"><p class="muted">Chưa chọn món nào.</p></div>
       <p style="font-size:19px;margin-top:10px">Tổng tiền: <b id="cart-total">0đ</b></p>
-      <label>Tên khách hàng *</label><input id="co-name" placeholder="Ví dụ: Nguyễn Văn A">
-      <label>Hình thức (không bắt buộc)</label>
-      <select id="co-method">
-        <option value="">-- Chọn hình thức --</option>
-        <option value="Giao tận nơi">Giao tận nơi</option>
-        <option value="Nhận tại quán">Nhận tại quán</option>
-      </select>
-      <label>Giờ muốn nhận món (không bắt buộc)</label><input id="co-time" placeholder="Ví dụ: 7h30 sáng nay, hoặc Càng sớm càng tốt">
-      <label>Ghi chú (không bắt buộc)</label><textarea id="co-note" rows="2" placeholder="VD: ít cay, thêm tương ớt..."></textarea>
-      <div id="msg-order"></div>
-      <br><button class="btn" onclick="placeOrder()">📤 Bắn đơn về quán</button>
-      <p class="muted" style="margin-top:8px">Đặt hàng chỉ cần tên, không cần đăng nhập, không cần số điện thoại hay địa chỉ. Đơn sẽ được lưu ngay trên máy chủ của quán.</p>
+      <div class="form-section">
+        <h3>🧾 Thông tin đặt hàng</h3>
+        <label>Tên khách hàng <span class="required">*</span></label>
+        <div class="field-icon"><span>👤</span><input id="co-name" placeholder="Ví dụ: Nguyễn Văn A"></div>
+        <label>Hình thức (không bắt buộc)</label>
+        <select id="co-method">
+          <option value="">-- Chọn hình thức --</option>
+          <option value="Giao tận nơi">🛵 Giao tận nơi</option>
+          <option value="Nhận tại quán">🏪 Nhận tại quán</option>
+        </select>
+        <label>Giờ muốn nhận món (không bắt buộc)</label><input id="co-time" placeholder="Ví dụ: 7h30 sáng nay, hoặc Càng sớm càng tốt">
+        <label>Ghi chú (không bắt buộc)</label><textarea id="co-note" rows="2" placeholder="VD: ít cay, thêm tương ớt..."></textarea>
+        <div id="msg-order"></div>
+        <br><button class="btn btn-block btn-cta" onclick="placeOrder()">📤 Bắn đơn về quán</button>
+        <p class="hint">Đặt hàng chỉ cần tên, không cần đăng nhập, không cần số điện thoại hay địa chỉ. Đơn sẽ được lưu ngay trên máy chủ của quán.</p>
+      </div>
     </div>
 
     <div class="card hidden" id="success-card">
-      <h2>✅ Đặt hàng thành công!</h2>
-      <p class="muted">Đơn của bạn đã gửi về máy chủ của quán dưới dạng text:</p>
-      <pre class="order-text" id="success-text"></pre>
-      <div class="row">
+      <div class="success-head"><span class="check">✓</span><div><h2 style="margin:0">Đặt hàng thành công!</h2><p class="muted" style="margin:2px 0 0">Đơn của bạn đã gửi về máy chủ của quán dưới dạng text:</p></div></div>
+      <pre class="order-text" id="success-text" style="margin-top:14px"></pre>
+      <div class="btn-grid">
         <button class="btn" onclick="copyOrderText()">📋 Sao chép đơn text</button>
         <button class="btn secondary" onclick="downloadOrderText()">⬇️ Tải đơn (.txt)</button>
         <button class="btn secondary" onclick="resetAfterOrder()">Đặt món khác</button>
         <button class="btn danger" id="btn-cancel-last" onclick="cancelLastOrder()">✖ Hủy đơn này</button>
       </div>
-      <div class="row">
-        <button class="btn" style="background:#22c55e;color:#fff" onclick="sendSMS()">💬 Gửi đơn qua SMS tới 0355368270</button>
-        <button class="btn" style="background:#2563eb;color:#fff" onclick="sendZalo()">📱 Sao chép đơn &amp; mở Zalo 0355368270</button>
+      <div class="btn-grid">
+        <button class="btn sms" onclick="sendSMS()">💬 Gửi đơn qua SMS tới 0355368270</button>
+        <button class="btn zalo" onclick="sendZalo()">📱 Sao chép đơn &amp; mở Zalo 0355368270</button>
       </div>
       <p class="muted" style="margin-top:8px">Đơn đã lưu trên máy chủ của quán. Nút SMS / Zalo ở trên chỉ là cách gửi thêm về số quán 0355368270 nếu bạn muốn.</p>
     </div>
@@ -154,20 +281,27 @@ pre.order-text{background:#111;color:#0f0;padding:14px;border-radius:10px;white-
 
   <!-- ĐƠN CỦA TÔI -->
   <section id="sec-my">
-    <h2>📦 Đơn của tôi</h2>
-    <p class="muted">Trang tự làm mới mỗi 5 giây khi đang xem, đơn mới sẽ nổi bật và kêu "bíp".</p>
+    <div class="section-head">
+      <h2>📦 Đơn của tôi</h2>
+      <p>Đơn bạn đã đặt sẽ hiện ở đây, đầy đủ từng món và tổng tiền.</p>
+    </div>
+    <p class="note-pill">⏱️ Trang tự làm mới mỗi 5 giây khi đang xem, đơn mới sẽ nổi bật và kêu "bíp".</p>
     <div class="row" style="margin-bottom:10px"><button class="btn small" onclick="loadMyOrders()">🔄 Tải lại</button></div>
     <div id="my-orders"><p class="muted">Đăng nhập để xem đơn của bạn.</p></div>
   </section>
 
   <!-- QUÁN -->
   <section id="sec-shop">
-    <h2>🏪 Quán - Đơn mới</h2>
-    <p class="muted">Chỉ chủ quán (SĐT 0358.96.1119) mới xem được tất cả đơn. Trang tự làm mới mỗi 5 giây, đơn mới sẽ nổi bật và kêu "bíp".</p>
+    <div class="section-head">
+      <h2>🏪 Quán - Đơn mới</h2>
+      <p>Chỉ chủ quán (SĐT 0358.96.1119) mới xem được tất cả đơn.</p>
+    </div>
+    <p class="note-pill">⏱️ Trang tự làm mới mỗi 5 giây, đơn mới sẽ nổi bật và kêu "bíp".</p>
     <div class="row" style="margin-bottom:10px">
       <button class="btn small" onclick="loadShopOrders()">🔄 Tải lại ngay</button>
       <button class="btn small secondary" onclick="exportAllOrders()">⬇️ Xuất tất cả đơn (.txt)</button>
-      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="sound-on" checked style="width:auto"> Bật tiếng bíp</label>
+      <button class="btn small btn-dark" onclick="exportSummary()">📊 Xuất file tổng</button>
+      <label style="display:flex;align-items:center;gap:6px;min-height:44px"><input type="checkbox" id="sound-on" checked style="width:auto"> Bật tiếng bíp</label>
     </div>
     <div id="cancel-notices"></div>
     <div id="shop-orders"><p class="muted">Đăng nhập bằng số của quán để xem đơn.</p></div>
@@ -175,14 +309,15 @@ pre.order-text{background:#111;color:#0f0;padding:14px;border-radius:10px;white-
 </main>
 
 <div id="cartbar">
-  <span>🧺 <span id="cart-count">0</span> món &nbsp;|&nbsp; <span class="total" id="cartbar-total">0đ</span></span>
-  <button onclick="showSection('sec-menu');document.getElementById('cart-card').scrollIntoView()">Xem giỏ &amp; Đặt hàng</button>
+  <span>🧺 <span id="cart-count">0</span> món &nbsp;|&nbsp; Tổng <span class="total" id="cartbar-total">0đ</span></span>
+  <button onclick="showSection('sec-menu');document.getElementById('cart-card').scrollIntoView()">Xem giỏ &amp; Đặt hàng →</button>
 </div>
 
 <script>
 const OWNER = "0358961119";
 let MENU = [];
 let CAT = "xoi";
+let SEARCH = "";
 let cart = {};
 try { cart = JSON.parse(localStorage.getItem("bms_cart") || "{}"); } catch(e){ cart = {}; }
 let lastOrderText = "";
@@ -288,17 +423,85 @@ function saveAddress(){
 }
 function setCat(c){
   CAT = c;
+  SEARCH = "";
+  const si = document.getElementById("menu-search"); if(si) si.value = "";
   ["xoi","banhmi","drink"].forEach(k=>document.getElementById("cat-"+k).classList.toggle("active", k===c));
   renderMenu();
 }
+// Tim mon theo ten (chi loc o trinh duyet, khong goi may chu). Khi dang tim
+// thi tim tren toan bo thuc don, khong gioi han theo nhom dang chon.
+function onMenuSearch(v){
+  SEARCH = (v||"").trim().toLowerCase();
+  renderMenu();
+}
+function catLabel(cat){ return {"xoi":"🍚 Xôi Nóng","banhmi":"🥖 Bánh Mì","drink":"🥤 Drink"}[cat]||""; }
+// Icon rieng cho tung mon, dua theo ten mon (khong can anh ngoai).
+function dishIcon(m){
+  const n = (m.name||"").toLowerCase();
+  if(m.cat==="drink"){
+    if(n.indexOf("leo")>=0) return "🍋";
+    if(n.indexOf("trân châu")>=0) return "🧋";
+    if(n.indexOf("đá")>=0 || n.indexOf("vối")>=0 || n.indexOf("nhân trần")>=0) return "🧊";
+    return "🍋";
+  }
+  if(m.cat==="banhmi"){
+    if(n.indexOf("bánh bao")>=0) return "🥟";
+    if(n.indexOf("trứng")>=0) return "🥚";
+    if(n.indexOf("bò khô")>=0) return "🥩";
+    if(n.indexOf("thập cẩm")>=0) return "🥪";
+    return "🥖";
+  }
+  if(n.indexOf("trứng")>=0) return "🥚";
+  if(n.indexOf("bò khô")>=0) return "🥩";
+  if(n.indexOf("thập cẩm")>=0) return "🍱";
+  if(n.indexOf("pate")>=0) return "🧈";
+  if(n.indexOf("xúc xích")>=0 || n.indexOf("lạp xưởng")>=0) return "🌭";
+  if(n.indexOf("chả")>=0) return "🥓";
+  return "🍚";
+}
+// Goi y vi ngan cho tung mon.
+function dishHint(m){
+  const n = (m.name||"").toLowerCase();
+  if(n.indexOf("thập cẩm")>=0) return "Đủ vị trong một phần — ăn một lần nhớ mãi";
+  if(n.indexOf("trứng")>=0) return "Trứng béo ngậy, ăn no cả buổi sáng";
+  if(n.indexOf("pate")>=0) return "Pate béo thơm, ăn cùng xôi nóng";
+  if(n.indexOf("xúc xích")>=0) return "Xúc xích dai giòn, trẻ con cũng mê";
+  if(n.indexOf("lạp xưởng")>=0) return "Lạp xưởng ngọt thơm, đậm vị";
+  if(n.indexOf("chả")>=0) return "Chả thơm dai, ăn kèm xôi rất hợp";
+  if(n.indexOf("bò khô")>=0) return "Bò khô cay nhẹ, đậm đà khó quên";
+  if(n.indexOf("bánh bao")>=0) return "Nhân xá xíu đầy đặn, 2 trứng";
+  if(n.indexOf("trân châu")>=0) return "Trân châu dai dai, uống là ghiền";
+  if(n.indexOf("trà chanh leo")>=0) return "Chua ngọt thanh mát, thơm vị chanh leo";
+  if(n.indexOf("trà chanh")>=0 || n.indexOf("tắc")>=0) return "Chua thanh, giải khát buổi sáng";
+  if(n.indexOf("trà đá")>=0 || n.indexOf("vối")>=0) return "Mát lạnh, uống kèm xôi bánh mì";
+  if(m.cat==="xoi") return "Xôi dẻo thơm, nóng hổi buổi sáng";
+  if(m.cat==="banhmi") return "Vỏ giòn, nhân đầy đặn";
+  return "Mát lạnh, giải khát";
+}
+// Cap nhat so luong mon tren tung pill nhom (VD: Xoi Nong (11)).
+function updateCatCounts(){
+  const counts = {xoi:0, banhmi:0, drink:0};
+  MENU.forEach(m=>{ if(counts[m.cat]!=null) counts[m.cat]++; });
+  const labels = {xoi:"🍚 Xôi Nóng", banhmi:"🥖 Bánh Mì", drink:"🥤 Drink"};
+  ["xoi","banhmi","drink"].forEach(k=>{
+    const b = document.getElementById("cat-"+k);
+    if(b) b.textContent = labels[k] + " (" + counts[k] + ")";
+  });
+}
 function renderMenu(){
   const list = document.getElementById("menu-list");
-  const items = MENU.filter(m=>m.cat===CAT);
-  if(!items.length){ list.innerHTML = "<p class='muted'>Chưa có món.</p>"; return; }
+  const items = MENU.filter(m=> SEARCH ? m.name.toLowerCase().includes(SEARCH) : m.cat===CAT);
+  if(!items.length){ list.innerHTML = "<div class='card'><p class='muted'>" + (SEARCH ? "Không tìm thấy món nào khớp “" + esc(SEARCH) + "”." : "Chưa có món.") + "</p></div>"; return; }
   list.innerHTML = items.map(m=>{
     const q = cart[m.id]||0;
-    return '<div class="item"><div><div class="name">'+esc(m.name)+'</div><div class="price">'+fmt(m.price)+'</div></div>'
-      + '<div class="qty"><button onclick="changeQty('+m.id+',-1)">−</button><span>'+q+'</span><button onclick="changeQty('+m.id+',1)">+</button></div></div>';
+    return '<div class="dish"><div class="dish-icon icon-'+m.cat+'">'+dishIcon(m)+'</div>'
+      + '<div class="dish-body"><div class="name">'+esc(m.name)+'</div>'
+      + '<div class="dish-hint">'+esc(dishHint(m))+'</div>'
+      + '<div class="price">'+fmt(m.price)+'</div>'
+      + (SEARCH ? '<span class="cat-label">'+catLabel(m.cat)+'</span>' : '')
+      + '<div class="dish-controls"><div class="qty"><button onclick="changeQty('+m.id+',-1)" aria-label="Giảm">−</button><span>'+q+'</span><button onclick="changeQty('+m.id+',1)" aria-label="Tăng">+</button></div>'
+      + '<button class="btn-add" onclick="changeQty('+m.id+',1)">+ Thêm</button></div>'
+      + '</div></div>';
   }).join("");
 }
 function changeQty(id, d){
@@ -369,13 +572,35 @@ function resetAfterOrder(){
   window.scrollTo(0,0);
 }
 function statusLabel(s){ return {"moi":"Mới","xac-nhan":"Đã xác nhận","hoan-thanh":"Hoàn thành","huy":"Đã hủy"}[s]||s; }
+// Chi tiet day du cua 1 don, dung chung cho the don (HTML) va file tong (text).
+// Moi mon 1 dong: ten × so luong — don gia = thanh tien.
+function orderDetailsText(o){
+  const lines = [];
+  lines.push("ĐƠN HÀNG #" + o.id);
+  lines.push("Thời gian: " + (o.created_at||""));
+  lines.push("Khách: " + (o.name||"") + (o.phone ? " - " + o.phone : ""));
+  if(o.method) lines.push("Hình thức: " + o.method);
+  if(o.time) lines.push("Giờ muốn nhận món: " + o.time);
+  if(o.note) lines.push("Ghi chú: " + o.note);
+  (o.items||[]).forEach(it=>{
+    lines.push("- " + it.name + " ×" + it.qty + " — " + fmt(it.price) + " = " + fmt(it.price*it.qty));
+  });
+  lines.push("Tổng tiền: " + fmt(o.total));
+  lines.push("Trạng thái: " + statusLabel(o.status));
+  return lines.join("\n");
+}
 function orderCard(o, owner){
-  let html = '<div class="order" data-id="'+o.id+'"><div class="head"><span>Đơn #'+o.id+' — '+fmt(o.total)+'</span><span class="badge '+o.status+'">'+statusLabel(o.status)+'</span></div>'
-    + '<p>'+esc(o.created_at)+' • '+esc(o.name)+' • '+esc(o.phone)+'</p>'
-    + '<p class="muted">'+esc(o.address)+'</p>'
-    + '<p>' + o.items.map(i=>esc(i.name)+' ×'+i.qty).join(', ') + '</p>'
-    + (o.note ? '<p class="muted">Ghi chú: '+esc(o.note)+'</p>' : '')
-    + '<pre class="order-text" style="margin-top:8px">'+esc(o.text||"")+'</pre>';
+  const itemsHtml = (o.items||[]).map(it=>
+    '<li><span>'+esc(it.name)+' ×'+it.qty+'</span><span class="line-total">'+fmt(it.price)+' = '+fmt(it.price*it.qty)+'</span></li>'
+  ).join("");
+  let html = '<div class="order st-'+(o.status||"moi")+'" data-id="'+o.id+'"><div class="head"><span>Đơn #'+o.id+'</span><span class="badge '+o.status+'">'+statusLabel(o.status)+'</span></div>'
+    + '<p class="meta">🕐 '+esc(o.created_at)+' &nbsp;•&nbsp; 👤 <b>'+esc(o.name)+'</b>'+(o.phone ? ' • '+esc(o.phone) : '')+'</p>'
+    + (o.method ? '<p class="meta">🚚 Hình thức: <b>'+esc(o.method)+'</b>'+(o.time ? ' &nbsp;•&nbsp; ⏰ '+esc(o.time) : '')+'</p>' : (o.time ? '<p class="meta">⏰ Giờ muốn nhận món: <b>'+esc(o.time)+'</b></p>' : ''))
+    + (o.address ? '<p class="muted">'+esc(o.address)+'</p>' : '')
+    + (o.note ? '<p class="meta">📝 Ghi chú: '+esc(o.note)+'</p>' : '')
+    + '<ul class="order-items">'+itemsHtml+'</ul>'
+    + '<div class="order-total"><span>Tổng tiền</span><span class="amount">'+fmt(o.total)+'</span></div>'
+    + '<pre class="order-text" style="margin-top:10px">'+esc(o.text||"")+'</pre>';
   // Nut "Xoa don": chu quan thay tren moi don; khach chi thay tren don cua
   // chinh minh (cung SDT dang nhap) va chi khi don con o trang thai "Moi".
   const u = getUser();
@@ -387,8 +612,8 @@ function orderCard(o, owner){
   const cancelBtn = canCancel ? '<button class="btn small danger" onclick="cancelOrder('+o.id+','+o.total+')">✖ Hủy đơn</button>' : '';
   if(owner){
     html += '<div class="row">'
-      + '<button class="btn small" onclick="setStatus('+o.id+',\'xac-nhan\')">✅ Xác nhận</button>'
-      + '<button class="btn small" onclick="setStatus('+o.id+',\'hoan-thanh\')">✔️ Hoàn thành</button>'
+      + '<button class="btn small confirm" onclick="setStatus('+o.id+',\'xac-nhan\')">✅ Xác nhận</button>'
+      + '<button class="btn small done" onclick="setStatus('+o.id+',\'hoan-thanh\')">✔️ Hoàn thành</button>'
       + '<button class="btn small danger" onclick="setStatus('+o.id+',\'huy\')">✖ Hủy</button>'
       + deleteBtn
       + '</div>';
@@ -429,7 +654,7 @@ function beep(){
 function renderCancelNotices(){
   const box = document.getElementById("cancel-notices");
   if(!box) return;
-  box.innerHTML = cancelNotices.map(n=>'<div class="msg err" style="margin:6px 0">🔔 Đơn #'+n.id+' vừa bị hủy bởi khách ('+esc(n.time)+').</div>').join("");
+  box.innerHTML = cancelNotices.map(n=>'<div class="cancel-notice">🔔 Đơn #'+n.id+' vừa bị hủy bởi khách ('+esc(n.time)+').</div>').join("");
 }
 async function loadShopOrders(){
   const el = document.getElementById("shop-orders");
@@ -508,6 +733,61 @@ async function exportAllOrders(){
   const text = r.orders.map(o=>o.text||"").join("\n\n");
   downloadText("tat-ca-don-hang.txt", text || "Chưa có đơn nào.\n");
 }
+// Gio Viet Nam hien tai, dang dd/mm/yyyy hh:mm (dung cho file tong).
+function vnNowParts(){
+  const p = new Intl.DateTimeFormat("en-GB", {timeZone:"Asia/Ho_Chi_Minh", day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit", hour12:false}).formatToParts(new Date());
+  const g = t=>{ const f = p.find(x=>x.type===t); return f ? f.value : ""; };
+  return {day:g("day"), month:g("month"), year:g("year"), hour:g("hour"), minute:g("minute")};
+}
+// Xuat file tong hop cho chu quan: tong don, tong doanh thu, dem theo trang
+// thai, doanh thu theo tung mon (cao -> thap), roi chi tiet day du tung don.
+async function exportSummary(){
+  const r = await api("/api/orders");
+  if(!r.ok){ alert(r.error||"Không tải được đơn"); return; }
+  const orders = r.orders || [];
+  if(!orders.length){ alert("Chưa có đơn nào để xuất"); return; }
+  const now = vnNowParts();
+  const exportTime = now.day + "/" + now.month + "/" + now.year + " " + now.hour + ":" + now.minute;
+  const totalRevenue = orders.reduce((s,o)=>s + (o.total||0), 0);
+  const byStatus = {"moi":0, "xac-nhan":0, "hoan-thanh":0, "huy":0};
+  orders.forEach(o=>{ if(byStatus[o.status]!=null) byStatus[o.status]++; });
+  const byDish = {};
+  orders.forEach(o=>{ (o.items||[]).forEach(it=>{
+    if(!byDish[it.name]) byDish[it.name] = {qty:0, money:0};
+    byDish[it.name].qty += it.qty;
+    byDish[it.name].money += it.price * it.qty;
+  }); });
+  const dishRows = Object.keys(byDish).map(name=>({name, qty:byDish[name].qty, money:byDish[name].money}))
+    .sort((a,b)=> b.money - a.money || b.qty - a.qty);
+  const lines = [];
+  lines.push("========================================");
+  lines.push("TỔNG HỢP ĐƠN HÀNG — XÔI - BÁNH MÌ - DRINK");
+  lines.push("Số 61, ngõ 54 Lê Quang Đạo, Phú Đô, Từ Liêm, Hà Nội");
+  lines.push("Thời gian xuất: " + exportTime + " (giờ Việt Nam)");
+  lines.push("========================================");
+  lines.push("Tổng số đơn: " + orders.length + " đơn");
+  lines.push("Tổng doanh thu: " + fmt(totalRevenue));
+  lines.push("");
+  lines.push("Theo trạng thái:");
+  lines.push("- Mới: " + byStatus["moi"] + " đơn");
+  lines.push("- Đã xác nhận: " + byStatus["xac-nhan"] + " đơn");
+  lines.push("- Hoàn thành: " + byStatus["hoan-thanh"] + " đơn");
+  lines.push("- Đã hủy: " + byStatus["huy"] + " đơn");
+  lines.push("");
+  lines.push("----------------------------------------");
+  lines.push("DOANH THU THEO MÓN (cao → thấp):");
+  dishRows.forEach((d,i)=>{ lines.push((i+1) + ". " + d.name + " — " + d.qty + " món — " + fmt(d.money)); });
+  lines.push("");
+  lines.push("----------------------------------------");
+  lines.push("CHI TIẾT TỪNG ĐƠN:");
+  orders.forEach(o=>{
+    lines.push("========================================");
+    lines.push(orderDetailsText(o));
+  });
+  lines.push("========================================");
+  const filename = "tong-hop-don-" + now.year + now.month + now.day + "-" + now.hour + now.minute + ".txt";
+  downloadText(filename, lines.join("\n"));
+}
 document.addEventListener("click", ()=>{ if(audioCtx && audioCtx.state==="suspended") audioCtx.resume(); }, {once:true});
 // Realtime: tu dong lam moi danh sach don moi 5 giay khi dang xem tab don
 // ("Don cua toi" hoac "Quan - Don moi") va dang dang nhap, khong can tai lai trang.
@@ -532,8 +812,8 @@ document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) pollOrd
 (async function init(){
   updateNavVisibility(); // an tab chu quan ngay tu dau neu chua dang nhap chu quan
   const r = await api("/api/menu");
-  if(r.ok){ MENU = r.menu; renderMenu(); renderCart(); renderAuth(); }
-  else document.getElementById("menu-list").innerHTML = "<p class='muted'>Không tải được thực đơn. Hãy kiểm tra máy chủ đang chạy.</p>";
+  if(r.ok){ MENU = r.menu; updateCatCounts(); renderMenu(); renderCart(); renderAuth(); }
+  else document.getElementById("menu-list").innerHTML = "<div class='card'><p class='muted'>Không tải được thực đơn. Hãy kiểm tra máy chủ đang chạy.</p></div>";
 })();
 </script>
 </body>

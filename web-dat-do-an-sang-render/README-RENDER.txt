@@ -71,3 +71,10 @@ LUU Y QUAN TRONG - NOI THAT
   - Ban host tren Render nay KHONG gui don ve Muse. Don chi nam tren may chu Render.
     Muon Muse bao don moi thi van dung ban web dong trong Muse nhu truoc.
   - Khach van co the gui them don qua SMS / Zalo ve so 0355368270 bang nut tren web.
+
+GIAO DIỆN MỚI (bản cao cấp):
+- Banner đầu trang gradient vàng-cam, nút gọi/Zalo bấm được ngay.
+- Mỗi món có icon riêng (trứng, chả, bò khô, trà chanh...), lưới 2 cột trên máy tính, 1 cột trên điện thoại; pill nhóm món có kèm số lượng món.
+- Thanh giỏ hàng nổi hình viên thuốc ở cuối màn hình, nút "Bắn đơn về quán" to, gradient vàng.
+- Thẻ đơn hiển thị đầy đủ: tên khách, giờ (giờ VN), hình thức/giờ nhận, ghi chú, từng món 1 dòng (tên × số lượng — đơn giá = thành tiền), tổng tiền to, huy hiệu trạng thái.
+- Tab "Quán - Đơn mới" (chỉ chủ quán): nút "📊 Xuất file tổng" tải file tong-hop-don-YYYYMMDD-HHmm.txt gồm tổng đơn, tổng doanh thu, đếm theo trạng thái, doanh thu theo từng món (cao → thấp), rồi chi tiết đầy đủ từng đơn. Nút "Xuất tất cả đơn (.txt)" cũ vẫn còn.
