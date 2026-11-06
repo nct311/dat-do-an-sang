@@ -68,7 +68,7 @@ pre.order-text{background:#111;color:#0f0;padding:14px;border-radius:10px;white-
 <nav>
   <button id="nav-menu" class="active" onclick="showSection('sec-menu')">🍽️ Đặt món</button>
   <button id="nav-my" onclick="showSection('sec-my')">📦 Đơn của tôi</button>
-  <button id="nav-shop" onclick="showSection('sec-shop')">🏪 Quán - Đơn mới</button>
+  <button id="nav-shop" style="display:none" onclick="showSection('sec-shop')">🏪 Quán - Đơn mới</button>
   <button id="nav-auth" onclick="showSection('sec-auth')">👤 Tài khoản</button>
 </nav>
 <main>
@@ -142,6 +142,7 @@ pre.order-text{background:#111;color:#0f0;padding:14px;border-radius:10px;white-
         <button class="btn" onclick="copyOrderText()">📋 Sao chép đơn text</button>
         <button class="btn secondary" onclick="downloadOrderText()">⬇️ Tải đơn (.txt)</button>
         <button class="btn secondary" onclick="resetAfterOrder()">Đặt món khác</button>
+        <button class="btn danger" id="btn-cancel-last" onclick="cancelLastOrder()">✖ Hủy đơn này</button>
       </div>
       <div class="row">
         <button class="btn" style="background:#22c55e;color:#fff" onclick="sendSMS()">💬 Gửi đơn qua SMS tới 0355368270</button>
@@ -168,6 +169,7 @@ pre.order-text{background:#111;color:#0f0;padding:14px;border-radius:10px;white-
       <button class="btn small secondary" onclick="exportAllOrders()">⬇️ Xuất tất cả đơn (.txt)</button>
       <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="sound-on" checked style="width:auto"> Bật tiếng bíp</label>
     </div>
+    <div id="cancel-notices"></div>
     <div id="shop-orders"><p class="muted">Đăng nhập bằng số của quán để xem đơn.</p></div>
   </section>
 </main>
@@ -184,9 +186,17 @@ let CAT = "xoi";
 let cart = {};
 try { cart = JSON.parse(localStorage.getItem("bms_cart") || "{}"); } catch(e){ cart = {}; }
 let lastOrderText = "";
+let lastOrderId = 0;
 let lastShopMaxId = 0;
 let seenOrderIds = new Set(); // id cac don da thay (dung chung cho ca 2 tab don)
+let shopSeenIds = new Set(); // id don chu quan da thay o tab "Quan - Don moi"
+let ownerDeletedIds = new Set(); // id don chu quan tu tay xoa (khong bao "khach huy")
+let cancelNotices = []; // thong bao don bi khach huy, moi nhat len dau (toi da 5)
 let audioCtx = null;
+// Ma huy don cua khach vang lai: luu tren trinh duyet nay theo ma don.
+function getCancelToken(id){ return localStorage.getItem("bms_cancel_" + id) || ""; }
+function saveCancelToken(id, token){ if(token) localStorage.setItem("bms_cancel_" + id, token); }
+function clearCancelToken(id){ localStorage.removeItem("bms_cancel_" + id); }
 
 function fmt(n){ return n.toLocaleString("vi-VN") + "đ"; }
 function normPhone(p){ return (p||"").replace(/\D/g,""); }
@@ -200,7 +210,24 @@ async function api(path, opts){
   const res = await fetch(path, {method: opts.method || "GET", headers, body: opts.body ? JSON.stringify(opts.body) : undefined});
   return res.json();
 }
+// Tab "Quan - Don moi" chi hien voi chu quan. Nguoi khong phai chu quan
+// khong thay tab nay, va co go truc tiep cung bi day ve tab "Dat mon".
+function updateNavVisibility(){
+  const u = getUser();
+  const isOwner = !!(u && u.is_owner);
+  document.getElementById("nav-shop").style.display = isOwner ? "" : "none";
+  if(!isOwner && document.getElementById("sec-shop").classList.contains("active")){
+    document.getElementById("sec-shop").classList.remove("active");
+    document.getElementById("sec-menu").classList.add("active");
+    document.getElementById("nav-shop").classList.remove("active");
+    document.getElementById("nav-menu").classList.add("active");
+  }
+}
 function showSection(id){
+  if(id==="sec-shop"){
+    const u = getUser();
+    if(!(u && u.is_owner)){ showSection("sec-menu"); return; }
+  }
   document.querySelectorAll("main section").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
   document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
@@ -218,6 +245,7 @@ function authTab(which){
 }
 function renderAuth(){
   const u = getUser();
+  updateNavVisibility();
   const bar = document.getElementById("authbar");
   const prof = document.getElementById("profile-box");
   if(u){
@@ -245,13 +273,13 @@ async function doLogin(){
   if(!r.ok){ msg("msg-auth", r.error||"Đăng nhập thất bại"); return; }
   localStorage.setItem("bms_token", r.token);
   localStorage.setItem("bms_user", JSON.stringify(r.user));
-  seenOrderIds.clear(); lastShopMaxId = 0; // dang nhap moi: don hien co khong tinh la don moi
+  seenOrderIds.clear(); shopSeenIds.clear(); ownerDeletedIds.clear(); cancelNotices = []; lastShopMaxId = 0; // dang nhap moi: don hien co khong tinh la don moi
   msg("msg-auth", "Đăng nhập thành công!", true);
   renderAuth();
 }
 function doLogout(){
   localStorage.removeItem("bms_token"); localStorage.removeItem("bms_user");
-  seenOrderIds.clear(); lastShopMaxId = 0;
+  seenOrderIds.clear(); shopSeenIds.clear(); ownerDeletedIds.clear(); cancelNotices = []; lastShopMaxId = 0;
   renderAuth(); loadMyOrders(); loadShopOrders();
 }
 function saveAddress(){
@@ -306,6 +334,8 @@ async function placeOrder(){
   const r = await api("/api/order", {method:"POST", body:{items, note:document.getElementById("co-note").value, name, method:document.getElementById("co-method").value, time:document.getElementById("co-time").value}});
   if(!r.ok){ msg("msg-order", r.error||"Đặt hàng thất bại."); return; }
   lastOrderText = r.order_text;
+  lastOrderId = r.order_id;
+  if(r.cancel_token) saveCancelToken(r.order_id, r.cancel_token);
   document.getElementById("success-text").textContent = r.order_text;
   document.getElementById("success-card").classList.remove("hidden");
   document.getElementById("success-card").scrollIntoView();
@@ -348,10 +378,13 @@ function orderCard(o, owner){
     + '<pre class="order-text" style="margin-top:8px">'+esc(o.text||"")+'</pre>';
   // Nut "Xoa don": chu quan thay tren moi don; khach chi thay tren don cua
   // chinh minh (cung SDT dang nhap) va chi khi don con o trang thai "Moi".
-  // Don dat chi can ten (khong dang nhap, phone rong) thi khach khong xoa duoc.
   const u = getUser();
   const canDelete = owner || (u && !u.is_owner && normPhone(o.phone) && normPhone(o.phone)===normPhone(u.phone) && o.status==="moi");
   const deleteBtn = canDelete ? '<button class="btn small danger" onclick="deleteOrder('+o.id+','+o.total+')">🗑️ Xóa đơn</button>' : '';
+  // Nut "Huy don" cho khach: don con "Moi" va khach co ma huy don nay
+  // (luu tren trinh duyet luc dat don) hoac dang nhap dung SDT cua don.
+  const canCancel = !owner && o.status==="moi" && (getCancelToken(o.id) || (u && !u.is_owner && normPhone(o.phone) && normPhone(o.phone)===normPhone(u.phone)));
+  const cancelBtn = canCancel ? '<button class="btn small danger" onclick="cancelOrder('+o.id+','+o.total+')">✖ Hủy đơn</button>' : '';
   if(owner){
     html += '<div class="row">'
       + '<button class="btn small" onclick="setStatus('+o.id+',\'xac-nhan\')">✅ Xác nhận</button>'
@@ -359,8 +392,8 @@ function orderCard(o, owner){
       + '<button class="btn small danger" onclick="setStatus('+o.id+',\'huy\')">✖ Hủy</button>'
       + deleteBtn
       + '</div>';
-  } else if(deleteBtn){
-    html += '<div class="row">' + deleteBtn + '</div>';
+  } else if(deleteBtn || cancelBtn){
+    html += '<div class="row">' + cancelBtn + deleteBtn + '</div>';
   }
   return html + '</div>';
 }
@@ -393,17 +426,34 @@ function beep(){
     setTimeout(()=>{ try{ const o2=audioCtx.createOscillator(), g2=audioCtx.createGain(); o2.connect(g2); g2.connect(audioCtx.destination); o2.frequency.value=880; g2.gain.value=0.15; o2.start(); o2.stop(audioCtx.currentTime+0.35);}catch(e){} }, 450);
   }catch(e){}
 }
+function renderCancelNotices(){
+  const box = document.getElementById("cancel-notices");
+  if(!box) return;
+  box.innerHTML = cancelNotices.map(n=>'<div class="msg err" style="margin:6px 0">🔔 Đơn #'+n.id+' vừa bị hủy bởi khách ('+esc(n.time)+').</div>').join("");
+}
 async function loadShopOrders(){
   const el = document.getElementById("shop-orders");
   const u = getUser();
-  if(!u){ el.innerHTML = "<p class='muted'>Đăng nhập bằng số của quán để xem đơn.</p>"; return; }
-  if(!u.is_owner){ el.innerHTML = "<p class='muted'>Tài khoản này không phải chủ quán. Chỉ số 0358.96.1119 mới xem được tất cả đơn.</p>"; return; }
+  // Tab chu quan da an voi nguoi khong phai chu quan; neu co goi ham nay
+  // ma khong phai chu quan thi im lang, khong lo thong tin gi.
+  if(!u || !u.is_owner){ el.innerHTML = ""; return; }
   const r = await api("/api/orders");
   if(!r.ok){ el.innerHTML = "<p class='muted'>"+esc(r.error||"Không tải được đơn.")+"</p>"; return; }
   const ids = r.orders.map(o=>o.id);
   const newIds = ids.filter(id=>!seenOrderIds.has(id));
   const isNew = seenOrderIds.size > 0 && newIds.length > 0;
+  // Don bi khach huy: id chu quan da thay truoc do, gio bien mat khoi
+  // danh sach, va khong phai do chu quan tu tay xoa o phien nay.
+  const removedIds = [...shopSeenIds].filter(id=>!ids.includes(id) && !ownerDeletedIds.has(id));
+  if(shopSeenIds.size > 0 && removedIds.length > 0 && removedIds.length <= 5){
+    const now = new Date().toLocaleString("vi-VN", {timeZone:"Asia/Ho_Chi_Minh", hour:"2-digit", minute:"2-digit", second:"2-digit", day:"2-digit", month:"2-digit", year:"numeric"});
+    removedIds.forEach(id=>cancelNotices.unshift({id, time: now}));
+    cancelNotices = cancelNotices.slice(0, 5);
+    renderCancelNotices();
+    beep();
+  }
   ids.forEach(id=>seenOrderIds.add(id));
+  shopSeenIds = new Set(ids);
   lastShopMaxId = ids.length ? Math.max.apply(null, ids) : 0;
   el.innerHTML = r.orders.length ? r.orders.map(o=>orderCard(o,true)).join("") : "<p class='muted'>Chưa có đơn nào.</p>";
   if(isNew){
@@ -415,9 +465,37 @@ async function deleteOrder(id, total){
   if(!confirm("Xóa đơn #" + id + " — tổng " + fmt(total) + "?\nĐơn sẽ bị xóa vĩnh viễn khỏi máy chủ.")) return;
   const r = await api("/api/order/delete", {method:"POST", body:{id}});
   if(!r.ok){ alert(r.error||"Không xóa được đơn"); return; }
+  ownerDeletedIds.add(id); shopSeenIds.delete(id); seenOrderIds.delete(id); // chu quan tu xoa: khong bao "khach huy"
   alert("Đã xóa đơn #" + id + ".");
   loadMyOrders();
   loadShopOrders();
+}
+// Khach huy don cua minh: dung ma huy don luu tren trinh duyet luc dat don;
+// neu khach dang nhap dung SDT cua don thi dung luon duong dan dang nhap.
+async function cancelOrder(id, total){
+  if(!confirm("Hủy đơn #" + id + " — tổng " + fmt(total) + "?\nĐơn sẽ bị xóa khỏi máy chủ của quán.")) return;
+  const token = getCancelToken(id);
+  let r;
+  if(token){
+    r = await api("/api/order/cancel", {method:"POST", body:{id, token}});
+  } else if(getToken()){
+    r = await api("/api/order/delete", {method:"POST", body:{id}});
+  } else {
+    alert("Không tìm thấy mã hủy của đơn này trên trình duyệt này.");
+    return;
+  }
+  if(!r.ok){ alert(r.error||"Không hủy được đơn"); return; }
+  clearCancelToken(id);
+  if(id === lastOrderId){ document.getElementById("success-card").classList.add("hidden"); }
+  alert("Đã hủy đơn #" + id + ".");
+  loadMyOrders();
+  loadShopOrders();
+}
+async function cancelLastOrder(){
+  if(!lastOrderId){ alert("Chưa có đơn nào vừa đặt."); return; }
+  const m = (document.getElementById("success-text").textContent||"").match(/Tổng tiền:\s*([\d.]+)/);
+  const total = m ? parseInt(m[1].replace(/\./g,""), 10) : 0;
+  cancelOrder(lastOrderId, total);
 }
 async function setStatus(id, status){
   const r = await api("/api/order/status", {method:"POST", body:{id, status}});
@@ -452,6 +530,7 @@ async function pollOrders(){
 setInterval(pollOrders, 5000);
 document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) pollOrders(); });
 (async function init(){
+  updateNavVisibility(); // an tab chu quan ngay tu dau neu chua dang nhap chu quan
   const r = await api("/api/menu");
   if(r.ok){ MENU = r.menu; renderMenu(); renderCart(); renderAuth(); }
   else document.getElementById("menu-list").innerHTML = "<p class='muted'>Không tải được thực đơn. Hãy kiểm tra máy chủ đang chạy.</p>";

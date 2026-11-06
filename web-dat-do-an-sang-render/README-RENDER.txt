@@ -32,14 +32,27 @@ BUOC 4 - LAY LINK VA GUI CHO MOI NGUOI
     "Ban don ve quan". Don luu ngay tren may chu Render.
 
 BUOC 5 - CHU QUAN XEM DON
-  - Mo link tren, vao tab "Tai khoan" -> "Dang ky" bang so 0358961119 truoc (1 lan duy nhat),
-    dat mat khau (nho mat khau nay), roi "Dang nhap" bang so do.
+  - TAI KHOAN CHU QUAN MAC DINH (da co san, khong can dang ky): so 0358961119,
+    mat khau quan2026. Mo link tren, vao tab "Tai khoan" -> "Dang nhap" bang so
+    va mat khau nay la xong. Ke ca sau khi Render deploy lai lam mat users.json,
+    may chu se tu tao lai tai khoan nay khi khoi dong, dang nhap ngay duoc.
+  - TAB "QUAN - DON MOI" CHI HIEN VOI CHU QUAN: khach va tai khoan khong phai
+    chu quan khong thay tab nay tren thanh dieu huong, khong thay noi dung don
+    cua quan. Chi khi dang nhap dung so 0358961119 tab moi hien ra.
   - Vao tab "Quan - Don moi": don moi tu hien sau toi da 5 giay, co tieng "bip",
     bam Xac nhan / Hoan thanh / Huy. Nut "Xuat tat ca don (.txt)" de tai toan bo don ve may.
-  - XOA DON: moi the don co nut "Xoa don" (chu quan thay tren moi don). Bam vao,
-    xac nhan ma don + tong tien, don se bi xoa vinh vien khoi may chu (ca orders.json
-    va don-hang.txt). Khach dang nhap chi xoa duoc don cua chinh minh khi don con
-    o trang thai "Moi"; khach khong dang nhap khong xoa duoc don.
+  - XOA DON: moi the don co nut "Xoa don" (chu quan thay tren moi don, ca o tab
+    "Don cua toi" va tab "Quan - Don moi"). Bam vao, xac nhan ma don + tong tien,
+    don se bi xoa vinh vien khoi may chu (ca orders.json va don-hang.txt).
+    Khach dang nhap chi xoa duoc don cua chinh minh khi don con o trang thai "Moi".
+  - KHACH HUY DON: khach dat don chi can ten (khong can dang nhap) van huy duoc
+    don cua minh khi don con o trang thai "Moi": tren the don vua dat xong co nut
+    "Huy don nay", va tren the don trong tab "Don cua toi" co nut "Huy don".
+    Khach chi huy duoc don cua chinh minh (nho ma huy luu tren trinh duyet luc dat don).
+  - THONG BAO HUY DON CHO CHU QUAN: khi khach huy don, don se tu bien mat khoi
+    tab "Quan - Don moi" trong vong 5 giay (khong can tai lai trang), dong thoi
+    hien bang thong bao "Don #... vua bi huy boi khach" kem gio Viet Nam va keu
+    "bip". Luu toi da 5 thong bao gan nhat, moi nhat len dau.
   - CAP NHAT REALTIME: ca tab "Don cua toi" (khach xem don cua minh) va tab
     "Quan - Don moi" (chu quan xem tat ca don) deu tu lam moi moi 5 giay khi
     dang mo tab don, khong can bam "Tai lai" hay tai lai trang. Don moi xuat
@@ -53,7 +66,8 @@ LUU Y QUAN TRONG - NOI THAT
   - O cung cua goi Free la tam thoi (ephemeral): khi Render khoi dong lai may chu hoac
     ban deploy lai code moi, file orders.json / don-hang.txt / users.json co the MAT.
     Hay thuong xuyen bam "Xuat tat ca don (.txt)" de tai don ve may, nhat la cuoi ngay.
-    Tai khoan chu quan (so 0358961119) neu mat thi dang ky lai nhu Buoc 5.
+    Tai khoan chu quan mac dinh (0358961119 / quan2026) se tu duoc tao lai khi may
+    chu khoi dong, nen khong can dang ky lai.
   - Ban host tren Render nay KHONG gui don ve Muse. Don chi nam tren may chu Render.
     Muon Muse bao don moi thi van dung ban web dong trong Muse nhu truoc.
   - Khach van co the gui them don qua SMS / Zalo ve so 0355368270 bang nut tren web.

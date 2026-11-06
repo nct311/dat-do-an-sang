@@ -92,6 +92,31 @@ def fmt(n):
     return f"{n:,}đ".replace(",", ".")
 
 
+OWNER_PASSWORD = "quan2026"  # mat khau mac dinh cua tai khoan chu quan
+
+
+def ensure_owner_account():
+    """Tao tai khoan chu quan mac dinh neu chua co (vd: sau khi Render
+    deploy lai lam mat users.json). Khong ghi de tai khoan da ton tai."""
+    with LOCK:
+        users = load_json(USERS_FILE, [])
+        if any(norm_phone(u.get("phone")) == OWNER_PHONE for u in users):
+            return False
+        salt = secrets.token_hex(16)
+        users.append({
+            "phone": OWNER_PHONE, "name": "Chủ quán",
+            "salt": salt, "password_hash": hash_password(OWNER_PASSWORD, salt),
+        })
+        save_json(USERS_FILE, users)
+        print(f"Da tao tai khoan chu quan mac dinh: {OWNER_PHONE} / {OWNER_PASSWORD}")
+        return True
+
+
+def public_order(o):
+    """Ban sao cua don hang de tra ve qua API — loai bo hash cua ma huy don."""
+    return {k: v for k, v in o.items() if k != "cancel_token_hash"}
+
+
 def order_text(order):
     lines = []
     lines.append("=" * 40)
@@ -169,7 +194,7 @@ class Handler(BaseHTTPRequestHandler):
                 visible = orders
             else:
                 visible = [o for o in orders if norm_phone(o["phone"]) == norm_phone(phone)]
-            visible = list(reversed(visible))  # don moi nhat len dau
+            visible = [public_order(o) for o in reversed(visible)]  # don moi nhat len dau
             self.send_json(200, {"ok": True, "orders": visible, "is_owner": norm_phone(phone) == OWNER_PHONE})
             return
         self.send_json(404, {"ok": False, "error": "Không tìm thấy"})
@@ -210,6 +235,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/login":
             phone = norm_phone(data.get("phone"))
             password = str(data.get("password") or "")
+            ensure_owner_account()  # phong khi users.json bi mat ma may chu chua khoi dong lai
             users = load_json(USERS_FILE, [])
             user = next((u for u in users if norm_phone(u["phone"]) == phone), None)
             if not user or hash_password(password, user["salt"]) != user["password_hash"]:
@@ -258,6 +284,9 @@ class Handler(BaseHTTPRequestHandler):
             if not items:
                 self.send_json(400, {"ok": False, "error": "Món chọn không hợp lệ"})
                 return
+            # Ma huy don: chi khach dat don nay moi co (tra ve 1 lan duy nhat).
+            # May chu chi luu SHA-256 cua ma, khong luu ma goc.
+            cancel_token = secrets.token_hex(16)
             with LOCK:
                 orders = load_json(ORDERS_FILE, [])
                 order_id = (max([o["id"] for o in orders], default=0) + 1)
@@ -267,6 +296,7 @@ class Handler(BaseHTTPRequestHandler):
                     "phone": phone, "name": name, "address": address,
                     "method": method, "time": time,
                     "note": note, "items": items, "total": total, "status": "moi",
+                    "cancel_token_hash": hashlib.sha256(cancel_token.encode("utf-8")).hexdigest(),
                 }
                 order["text"] = order_text(order)
                 orders.append(order)
@@ -274,7 +304,50 @@ class Handler(BaseHTTPRequestHandler):
                 with open(ORDERS_TXT, "a", encoding="utf-8") as f:
                     f.write(order["text"] + "\n\n")
             print(f"ĐƠN MỚI #{order_id} - {name} ({phone}) - {fmt(total)}")
-            self.send_json(200, {"ok": True, "order_id": order_id, "total": total, "order_text": order["text"]})
+            self.send_json(200, {"ok": True, "order_id": order_id, "total": total,
+                                 "order_text": order["text"], "cancel_token": cancel_token})
+            return
+
+        if self.path == "/api/order/cancel":
+            # Khach huy don cua minh. Khong can dang nhap: dung ma huy don
+            # (cancel_token) tra ve luc dat don. Khach da dang nhap cung co
+            # the huy don cua minh (hoac chu quan huy bat ky don nao) bang
+            # token dang nhap, khong can ma huy.
+            try:
+                oid = int(data.get("id"))
+            except Exception:
+                self.send_json(400, {"ok": False, "error": "Thiếu mã đơn"})
+                return
+            token = str(data.get("token") or data.get("cancel_token") or "")
+            caller = self.auth_phone()
+            with LOCK:
+                orders = load_json(ORDERS_FILE, [])
+                order = next((o for o in orders if o["id"] == oid), None)
+                if not order:
+                    self.send_json(404, {"ok": False, "error": "Không tìm thấy đơn"})
+                    return
+                if order.get("status") != "moi":
+                    self.send_json(400, {"ok": False, "error": "Chỉ hủy được đơn đang ở trạng thái Mới"})
+                    return
+                allowed = False
+                if caller and norm_phone(caller) == OWNER_PHONE:
+                    allowed = True
+                elif caller and norm_phone(order.get("phone")) and norm_phone(order.get("phone")) == norm_phone(caller):
+                    allowed = True
+                elif token and order.get("cancel_token_hash"):
+                    if hashlib.sha256(token.encode("utf-8")).hexdigest() == order["cancel_token_hash"]:
+                        allowed = True
+                if not allowed:
+                    self.send_json(403, {"ok": False, "error": "Mã hủy không đúng hoặc bạn không có quyền hủy đơn này"})
+                    return
+                orders = [o for o in orders if o["id"] != oid]
+                save_json(ORDERS_FILE, orders)
+                with open(ORDERS_TXT, "w", encoding="utf-8") as f:
+                    f.write("DANH SÁCH ĐƠN HÀNG - XÔI BÁNH MÌ DRINK\n")
+                    for o in orders:
+                        f.write((o.get("text") or order_text(o)) + "\n\n")
+            print(f"KHÁCH ĐÃ HỦY ĐƠN #{oid} - {order.get('name')} - {fmt(order.get('total', 0))}")
+            self.send_json(200, {"ok": True, "message": f"Đã hủy đơn #{oid}"})
             return
 
         if self.path == "/api/order/delete":
@@ -346,6 +419,7 @@ if __name__ == "__main__":
     for path, default in ((USERS_FILE, []), (ORDERS_FILE, [])):
         if not os.path.exists(path):
             save_json(path, default)
+    ensure_owner_account()  # tai khoan chu quan mac dinh: 0358961119 / quan2026
     if not os.path.exists(ORDERS_TXT):
         with open(ORDERS_TXT, "w", encoding="utf-8") as f:
             f.write("DANH SÁCH ĐƠN HÀNG - XÔI BÁNH MÌ DRINK\n")
