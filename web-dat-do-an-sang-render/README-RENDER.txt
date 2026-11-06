@@ -36,6 +36,16 @@ BUOC 5 - CHU QUAN XEM DON
     dat mat khau (nho mat khau nay), roi "Dang nhap" bang so do.
   - Vao tab "Quan - Don moi": don moi tu hien sau toi da 5 giay, co tieng "bip",
     bam Xac nhan / Hoan thanh / Huy. Nut "Xuat tat ca don (.txt)" de tai toan bo don ve may.
+  - XOA DON: moi the don co nut "Xoa don" (chu quan thay tren moi don). Bam vao,
+    xac nhan ma don + tong tien, don se bi xoa vinh vien khoi may chu (ca orders.json
+    va don-hang.txt). Khach dang nhap chi xoa duoc don cua chinh minh khi don con
+    o trang thai "Moi"; khach khong dang nhap khong xoa duoc don.
+  - CAP NHAT REALTIME: ca tab "Don cua toi" (khach xem don cua minh) va tab
+    "Quan - Don moi" (chu quan xem tat ca don) deu tu lam moi moi 5 giay khi
+    dang mo tab don, khong can bam "Tai lai" hay tai lai trang. Don moi xuat
+    hien se duoc to do va keu "bip". Khi an tab trinh duyet (chuyen sang tab
+    khac), viec tu lam moi tam dung de tiet kiem tai nguyen; mo lai tab thi
+    lam moi ngay lap tuc.
 
 LUU Y QUAN TRONG - NOI THAT
   - Goi Free cua Render se "ngu" sau khoang 15 phut khong co ai mo web. Lan mo dau tien

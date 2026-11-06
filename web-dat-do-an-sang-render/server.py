@@ -273,6 +273,42 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, {"ok": True, "order_id": order_id, "total": total, "order_text": order["text"]})
             return
 
+        if self.path == "/api/order/delete":
+            phone = self.auth_phone()
+            if not phone:
+                self.send_json(401, {"ok": False, "error": "Vui lòng đăng nhập trước khi xóa đơn"})
+                return
+            try:
+                oid = int(data.get("id"))
+            except Exception:
+                self.send_json(400, {"ok": False, "error": "Thiếu mã đơn"})
+                return
+            with LOCK:
+                orders = load_json(ORDERS_FILE, [])
+                order = next((o for o in orders if o["id"] == oid), None)
+                if not order:
+                    self.send_json(404, {"ok": False, "error": "Không tìm thấy đơn"})
+                    return
+                is_owner = norm_phone(phone) == OWNER_PHONE
+                if not is_owner:
+                    # Khach chi xoa duoc don cua chinh minh va chi khi don con o trang thai "Moi".
+                    if not norm_phone(order.get("phone")) or norm_phone(order.get("phone")) != norm_phone(phone):
+                        self.send_json(403, {"ok": False, "error": "Bạn chỉ được xóa đơn của mình"})
+                        return
+                    if order.get("status") != "moi":
+                        self.send_json(403, {"ok": False, "error": "Chỉ xóa được đơn đang ở trạng thái Mới"})
+                        return
+                orders = [o for o in orders if o["id"] != oid]
+                save_json(ORDERS_FILE, orders)
+                # Viet lai don-hang.txt tu cac don con lai de file luon khop voi orders.json.
+                with open(ORDERS_TXT, "w", encoding="utf-8") as f:
+                    f.write("DANH SÁCH ĐƠN HÀNG - XÔI BÁNH MÌ DRINK\n")
+                    for o in orders:
+                        f.write((o.get("text") or order_text(o)) + "\n\n")
+            print(f"ĐÃ XÓA ĐƠN #{oid} - {order.get('name')} - {fmt(order.get('total', 0))}")
+            self.send_json(200, {"ok": True, "message": f"Đã xóa đơn #{oid}"})
+            return
+
         if self.path == "/api/order/status":
             phone = self.auth_phone()
             if not phone or norm_phone(phone) != OWNER_PHONE:

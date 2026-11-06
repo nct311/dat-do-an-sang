@@ -154,6 +154,7 @@ pre.order-text{background:#111;color:#0f0;padding:14px;border-radius:10px;white-
   <!-- ĐƠN CỦA TÔI -->
   <section id="sec-my">
     <h2>📦 Đơn của tôi</h2>
+    <p class="muted">Trang tự làm mới mỗi 5 giây khi đang xem, đơn mới sẽ nổi bật và kêu "bíp".</p>
     <div class="row" style="margin-bottom:10px"><button class="btn small" onclick="loadMyOrders()">🔄 Tải lại</button></div>
     <div id="my-orders"><p class="muted">Đăng nhập để xem đơn của bạn.</p></div>
   </section>
@@ -184,6 +185,7 @@ let cart = {};
 try { cart = JSON.parse(localStorage.getItem("bms_cart") || "{}"); } catch(e){ cart = {}; }
 let lastOrderText = "";
 let lastShopMaxId = 0;
+let seenOrderIds = new Set(); // id cac don da thay (dung chung cho ca 2 tab don)
 let audioCtx = null;
 
 function fmt(n){ return n.toLocaleString("vi-VN") + "đ"; }
@@ -243,11 +245,13 @@ async function doLogin(){
   if(!r.ok){ msg("msg-auth", r.error||"Đăng nhập thất bại"); return; }
   localStorage.setItem("bms_token", r.token);
   localStorage.setItem("bms_user", JSON.stringify(r.user));
+  seenOrderIds.clear(); lastShopMaxId = 0; // dang nhap moi: don hien co khong tinh la don moi
   msg("msg-auth", "Đăng nhập thành công!", true);
   renderAuth();
 }
 function doLogout(){
   localStorage.removeItem("bms_token"); localStorage.removeItem("bms_user");
+  seenOrderIds.clear(); lastShopMaxId = 0;
   renderAuth(); loadMyOrders(); loadShopOrders();
 }
 function saveAddress(){
@@ -342,12 +346,21 @@ function orderCard(o, owner){
     + '<p>' + o.items.map(i=>esc(i.name)+' ×'+i.qty).join(', ') + '</p>'
     + (o.note ? '<p class="muted">Ghi chú: '+esc(o.note)+'</p>' : '')
     + '<pre class="order-text" style="margin-top:8px">'+esc(o.text||"")+'</pre>';
+  // Nut "Xoa don": chu quan thay tren moi don; khach chi thay tren don cua
+  // chinh minh (cung SDT dang nhap) va chi khi don con o trang thai "Moi".
+  // Don dat chi can ten (khong dang nhap, phone rong) thi khach khong xoa duoc.
+  const u = getUser();
+  const canDelete = owner || (u && !u.is_owner && normPhone(o.phone) && normPhone(o.phone)===normPhone(u.phone) && o.status==="moi");
+  const deleteBtn = canDelete ? '<button class="btn small danger" onclick="deleteOrder('+o.id+','+o.total+')">🗑️ Xóa đơn</button>' : '';
   if(owner){
     html += '<div class="row">'
       + '<button class="btn small" onclick="setStatus('+o.id+',\'xac-nhan\')">✅ Xác nhận</button>'
       + '<button class="btn small" onclick="setStatus('+o.id+',\'hoan-thanh\')">✔️ Hoàn thành</button>'
       + '<button class="btn small danger" onclick="setStatus('+o.id+',\'huy\')">✖ Hủy</button>'
+      + deleteBtn
       + '</div>';
+  } else if(deleteBtn){
+    html += '<div class="row">' + deleteBtn + '</div>';
   }
   return html + '</div>';
 }
@@ -356,7 +369,16 @@ async function loadMyOrders(){
   if(!getToken()){ el.innerHTML = "<p class='muted'>Đăng nhập để xem đơn của bạn.</p>"; return; }
   const r = await api("/api/orders");
   if(!r.ok){ el.innerHTML = "<p class='muted'>"+esc(r.error||"Không tải được đơn.")+"</p>"; return; }
+  // Realtime: don nao co id chua tung thay o lan tai truoc la don moi.
+  const ids = r.orders.map(o=>o.id);
+  const newIds = ids.filter(id=>!seenOrderIds.has(id));
+  const isNew = seenOrderIds.size > 0 && newIds.length > 0;
+  ids.forEach(id=>seenOrderIds.add(id));
   el.innerHTML = r.orders.length ? r.orders.map(o=>orderCard(o,false)).join("") : "<p class='muted'>Bạn chưa có đơn nào.</p>";
+  if(isNew){
+    newIds.forEach(id=>{ const card = el.querySelector('.order[data-id="'+id+'"]'); if(card) card.classList.add("new"); });
+    beep();
+  }
 }
 function beep(){
   if(!document.getElementById("sound-on") || !document.getElementById("sound-on").checked) return;
@@ -377,15 +399,24 @@ async function loadShopOrders(){
   if(!u.is_owner){ el.innerHTML = "<p class='muted'>Tài khoản này không phải chủ quán. Chỉ số 0358.96.1119 mới xem được tất cả đơn.</p>"; return; }
   const r = await api("/api/orders");
   if(!r.ok){ el.innerHTML = "<p class='muted'>"+esc(r.error||"Không tải được đơn.")+"</p>"; return; }
-  const maxId = r.orders.length ? Math.max.apply(null, r.orders.map(o=>o.id)) : 0;
-  const isNew = lastShopMaxId && maxId > lastShopMaxId;
-  lastShopMaxId = maxId;
+  const ids = r.orders.map(o=>o.id);
+  const newIds = ids.filter(id=>!seenOrderIds.has(id));
+  const isNew = seenOrderIds.size > 0 && newIds.length > 0;
+  ids.forEach(id=>seenOrderIds.add(id));
+  lastShopMaxId = ids.length ? Math.max.apply(null, ids) : 0;
   el.innerHTML = r.orders.length ? r.orders.map(o=>orderCard(o,true)).join("") : "<p class='muted'>Chưa có đơn nào.</p>";
   if(isNew){
-    const first = el.querySelector(".order");
-    if(first) first.classList.add("new");
+    newIds.forEach(id=>{ const card = el.querySelector('.order[data-id="'+id+'"]'); if(card) card.classList.add("new"); });
     beep();
   }
+}
+async function deleteOrder(id, total){
+  if(!confirm("Xóa đơn #" + id + " — tổng " + fmt(total) + "?\nĐơn sẽ bị xóa vĩnh viễn khỏi máy chủ.")) return;
+  const r = await api("/api/order/delete", {method:"POST", body:{id}});
+  if(!r.ok){ alert(r.error||"Không xóa được đơn"); return; }
+  alert("Đã xóa đơn #" + id + ".");
+  loadMyOrders();
+  loadShopOrders();
 }
 async function setStatus(id, status){
   const r = await api("/api/order/status", {method:"POST", body:{id, status}});
@@ -399,7 +430,26 @@ async function exportAllOrders(){
   downloadText("tat-ca-don-hang.txt", text || "Chưa có đơn nào.\n");
 }
 document.addEventListener("click", ()=>{ if(audioCtx && audioCtx.state==="suspended") audioCtx.resume(); }, {once:true});
-setInterval(()=>{ const u=getUser(); if(u && u.is_owner && document.getElementById("sec-shop").classList.contains("active")) loadShopOrders(); }, 5000);
+// Realtime: tu dong lam moi danh sach don moi 5 giay khi dang xem tab don
+// ("Don cua toi" hoac "Quan - Don moi") va dang dang nhap, khong can tai lai trang.
+// - Chu quan thay tat ca don, khach chi thay don cua minh (do /api/orders tra ve).
+// - Don moi (id chua tung thay) se duoc to do (class .new) va keu "bip".
+// - Tam dung khi tab trinh duyet bi an (document.hidden) de do ton tai nguyen;
+//   mo lai tab se lam moi ngay lap tuc. Nut "Tai lai" van giu lam du phong.
+let pollBusy = false;
+async function pollOrders(){
+  if(document.hidden || pollBusy) return;
+  const u = getUser();
+  if(!u) return;
+  pollBusy = true;
+  try{
+    if(document.getElementById("sec-my").classList.contains("active")) await loadMyOrders();
+    else if(document.getElementById("sec-shop").classList.contains("active") && u.is_owner) await loadShopOrders();
+  }catch(e){}
+  pollBusy = false;
+}
+setInterval(pollOrders, 5000);
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) pollOrders(); });
 (async function init(){
   const r = await api("/api/menu");
   if(r.ok){ MENU = r.menu; renderMenu(); renderCart(); renderAuth(); }
