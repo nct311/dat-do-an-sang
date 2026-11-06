@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Xôi - Bánh Mì - Drink | Đặt đồ ăn sáng</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#FFF8DC;color:#222;line-height:1.5}
+header{background:#FFD23F;padding:18px 14px;text-align:center;border-bottom:4px solid #222}
+header h1{font-size:26px;letter-spacing:.5px}
+header p{font-size:14px;margin-top:4px}
+header .phone{font-weight:700;font-size:17px;margin-top:4px}
+nav{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:12px;background:#fff;border-bottom:1px solid #eee;position:sticky;top:0;z-index:10}
+nav button{border:2px solid #222;background:#fff;border-radius:999px;padding:8px 14px;font-weight:700;cursor:pointer}
+nav button.active{background:#FFD23F}
+main{max-width:860px;margin:0 auto;padding:16px 12px 120px}
+section{display:none}
+section.active{display:block}
+h2{margin:6px 0 12px;font-size:20px}
+.card{background:#fff;border:2px solid #222;border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:3px 3px 0 #222}
+label{display:block;font-weight:700;margin:10px 0 4px;font-size:14px}
+input,textarea,select{width:100%;padding:11px;border:2px solid #222;border-radius:10px;font-size:16px;background:#fff}
+button.btn{background:#FFD23F;border:2px solid #222;border-radius:10px;padding:12px 18px;font-weight:800;cursor:pointer;font-size:16px;box-shadow:2px 2px 0 #222}
+button.btn:active{transform:translate(2px,2px);box-shadow:none}
+button.btn.secondary{background:#fff}
+button.btn.small{padding:7px 10px;font-size:14px}
+button.btn.danger{background:#ff6b6b;color:#fff}
+.tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.tabs button{flex:1;min-width:90px;padding:10px;border:2px solid #222;border-radius:999px;background:#fff;font-weight:700;cursor:pointer}
+.tabs button.active{background:#222;color:#FFD23F}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 4px;border-bottom:1px dashed #ccc}
+.item:last-child{border-bottom:none}
+.item .name{font-weight:700}
+.item .price{color:#b3261e;font-weight:800;white-space:nowrap}
+.qty{display:flex;align-items:center;gap:8px}
+.qty button{width:34px;height:34px;border-radius:50%;border:2px solid #222;background:#FFD23F;font-size:18px;font-weight:800;cursor:pointer}
+.qty span{min-width:22px;text-align:center;font-weight:800}
+#cartbar{position:fixed;left:0;right:0;bottom:0;background:#222;color:#fff;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;z-index:20}
+#cartbar .total{font-weight:800;font-size:18px}
+#cartbar button{background:#FFD23F;border:none;border-radius:999px;padding:10px 16px;font-weight:800;cursor:pointer}
+.msg{padding:10px;border-radius:10px;margin:10px 0;font-weight:600}
+.msg.err{background:#ffe0e0;border:2px solid #c00}
+.msg.ok{background:#dcffe0;border:2px solid #090}
+pre.order-text{background:#111;color:#0f0;padding:14px;border-radius:10px;white-space:pre-wrap;word-break:break-word;font-size:14px;overflow:auto}
+.order{border:2px solid #222;border-radius:12px;padding:12px;margin-bottom:12px;background:#fff}
+.order.new{border-color:#e00;background:#fff3f3;box-shadow:0 0 0 3px #ffcccc}
+.order .head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:800}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;border:2px solid #222}
+.badge.moi{background:#FFD23F}
+.badge.xac-nhan{background:#bfe3ff}
+.badge.hoan-thanh{background:#c8f7c5}
+.badge.huy{background:#ffc9c9}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.muted{color:#666;font-size:14px}
+.hidden{display:none!important}
+@media(max-width:560px){header h1{font-size:21px}main{padding-bottom:140px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🍜 XÔI - BÁNH MÌ - DRINK</h1>
+  <p>Ăn sáng ngon - nhanh - nóng hổi</p>
+  <p>Số 61, ngõ 54 Lê Quang Đạo, Phú Đô, Từ Liêm, Hà Nội</p>
+  <p class="phone">📞 0358.96.1119</p>
+  <p>Đặt qua SMS / Zalo: <b>0355 368 270</b></p>
+</header>
+<nav>
+  <button id="nav-menu" class="active" onclick="showSection('sec-menu')">🍽️ Đặt món</button>
+  <button id="nav-my" onclick="showSection('sec-my')">📦 Đơn của tôi</button>
+  <button id="nav-shop" onclick="showSection('sec-shop')">🏪 Quán - Đơn mới</button>
+  <button id="nav-auth" onclick="showSection('sec-auth')">👤 Tài khoản</button>
+</nav>
+<main>
+  <div id="authbar" class="card"></div>
+
+  <!-- TÀI KHOẢN -->
+  <section id="sec-auth" class="active">
+    <div class="card">
+      <h2>👤 Tài khoản</h2>
+      <div class="tabs">
+        <button id="tab-reg" class="active" onclick="authTab('reg')">Đăng ký</button>
+        <button id="tab-login" onclick="authTab('login')">Đăng nhập</button>
+      </div>
+      <div id="msg-auth"></div>
+      <div id="form-reg">
+        <label>Họ tên</label><input id="reg-name" placeholder="Ví dụ: Nguyễn Văn A">
+        <label>Số điện thoại</label><input id="reg-phone" inputmode="tel" placeholder="vd: 0912345678">
+        <label>Mật khẩu (ít nhất 4 ký tự)</label><input id="reg-pass" type="password">
+        <br><br><button class="btn" onclick="doRegister()">Đăng ký</button>
+      </div>
+      <div id="form-login" class="hidden">
+        <label>Số điện thoại</label><input id="login-phone" inputmode="tel" placeholder="vd: 0912345678">
+        <label>Mật khẩu</label><input id="login-pass" type="password">
+        <br><br><button class="btn" onclick="doLogin()">Đăng nhập</button>
+        <p class="muted" style="margin-top:10px">Chủ quán đăng nhập bằng số <b>0358.96.1119</b> để xem mọi đơn hàng.</p>
+      </div>
+      <div id="profile-box" class="hidden">
+        <p>Bạn đã đăng nhập.</p>
+        <label>Địa chỉ mặc định (lưu trên máy này)</label>
+        <input id="default-address" placeholder="Số nhà, ngõ, đường...">
+        <br><br>
+        <button class="btn secondary" onclick="saveAddress()">Lưu địa chỉ</button>
+        <button class="btn danger" onclick="doLogout()">Đăng xuất</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ĐẶT MÓN -->
+  <section id="sec-menu">
+    <h2>🍽️ Thực đơn</h2>
+    <div class="tabs">
+      <button id="cat-xoi" class="active" onclick="setCat('xoi')">🍚 Xôi Nóng</button>
+      <button id="cat-banhmi" onclick="setCat('banhmi')">🥖 Bánh Mì</button>
+      <button id="cat-drink" onclick="setCat('drink')">🥤 Drink</button>
+    </div>
+    <div class="card" id="menu-list"><p class="muted">Đang tải thực đơn...</p></div>
+
+    <div class="card" id="cart-card">
+      <h2>🧺 Giỏ hàng</h2>
+      <div id="cart-list"><p class="muted">Chưa chọn món nào.</p></div>
+      <p style="font-size:19px;margin-top:10px">Tổng tiền: <b id="cart-total">0đ</b></p>
+      <label>Tên khách hàng *</label><input id="co-name" placeholder="Ví dụ: Nguyễn Văn A">
+      <label>Hình thức (không bắt buộc)</label>
+      <select id="co-method">
+        <option value="">-- Chọn hình thức --</option>
+        <option value="Giao tận nơi">Giao tận nơi</option>
+        <option value="Nhận tại quán">Nhận tại quán</option>
+      </select>
+      <label>Giờ muốn nhận món (không bắt buộc)</label><input id="co-time" placeholder="Ví dụ: 7h30 sáng nay, hoặc Càng sớm càng tốt">
+      <label>Ghi chú (không bắt buộc)</label><textarea id="co-note" rows="2" placeholder="VD: ít cay, thêm tương ớt..."></textarea>
+      <div id="msg-order"></div>
+      <br><button class="btn" onclick="placeOrder()">📤 Bắn đơn về quán</button>
+      <p class="muted" style="margin-top:8px">Đặt hàng chỉ cần tên, không cần đăng nhập, không cần số điện thoại hay địa chỉ. Đơn sẽ được lưu ngay trên máy chủ của quán.</p>
+    </div>
+
+    <div class="card hidden" id="success-card">
+      <h2>✅ Đặt hàng thành công!</h2>
+      <p class="muted">Đơn của bạn đã gửi về máy chủ của quán dưới dạng text:</p>
+      <pre class="order-text" id="success-text"></pre>
+      <div class="row">
+        <button class="btn" onclick="copyOrderText()">📋 Sao chép đơn text</button>
+        <button class="btn secondary" onclick="downloadOrderText()">⬇️ Tải đơn (.txt)</button>
+        <button class="btn secondary" onclick="resetAfterOrder()">Đặt món khác</button>
+      </div>
+      <div class="row">
+        <button class="btn" style="background:#22c55e;color:#fff" onclick="sendSMS()">💬 Gửi đơn qua SMS tới 0355368270</button>
+        <button class="btn" style="background:#2563eb;color:#fff" onclick="sendZalo()">📱 Sao chép đơn &amp; mở Zalo 0355368270</button>
+      </div>
+      <p class="muted" style="margin-top:8px">Đơn đã lưu trên máy chủ của quán. Nút SMS / Zalo ở trên chỉ là cách gửi thêm về số quán 0355368270 nếu bạn muốn.</p>
+    </div>
+  </section>
+
+  <!-- ĐƠN CỦA TÔI -->
+  <section id="sec-my">
+    <h2>📦 Đơn của tôi</h2>
+    <div class="row" style="margin-bottom:10px"><button class="btn small" onclick="loadMyOrders()">🔄 Tải lại</button></div>
+    <div id="my-orders"><p class="muted">Đăng nhập để xem đơn của bạn.</p></div>
+  </section>
+
+  <!-- QUÁN -->
+  <section id="sec-shop">
+    <h2>🏪 Quán - Đơn mới</h2>
+    <p class="muted">Chỉ chủ quán (SĐT 0358.96.1119) mới xem được tất cả đơn. Trang tự làm mới mỗi 5 giây, đơn mới sẽ nổi bật và kêu "bíp".</p>
+    <div class="row" style="margin-bottom:10px">
+      <button class="btn small" onclick="loadShopOrders()">🔄 Tải lại ngay</button>
+      <button class="btn small secondary" onclick="exportAllOrders()">⬇️ Xuất tất cả đơn (.txt)</button>
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="sound-on" checked style="width:auto"> Bật tiếng bíp</label>
+    </div>
+    <div id="shop-orders"><p class="muted">Đăng nhập bằng số của quán để xem đơn.</p></div>
+  </section>
+</main>
+
+<div id="cartbar">
+  <span>🧺 <span id="cart-count">0</span> món &nbsp;|&nbsp; <span class="total" id="cartbar-total">0đ</span></span>
+  <button onclick="showSection('sec-menu');document.getElementById('cart-card').scrollIntoView()">Xem giỏ &amp; Đặt hàng</button>
+</div>
+
+<script>
+const OWNER = "0358961119";
+let MENU = [];
+let CAT = "xoi";
+let cart = {};
+try { cart = JSON.parse(localStorage.getItem("bms_cart") || "{}"); } catch(e){ cart = {}; }
+let lastOrderText = "";
+let lastShopMaxId = 0;
+let audioCtx = null;
+
+function fmt(n){ return n.toLocaleString("vi-VN") + "đ"; }
+function normPhone(p){ return (p||"").replace(/\D/g,""); }
+function getToken(){ return localStorage.getItem("bms_token") || ""; }
+function getUser(){ try { return JSON.parse(localStorage.getItem("bms_user") || "null"); } catch(e){ return null; } }
+function msg(id, text, ok){ const el=document.getElementById(id); if(!el) return; el.innerHTML = text ? '<div class="msg '+(ok?'ok':'err')+'">'+text+'</div>' : ''; }
+async function api(path, opts){
+  opts = opts || {};
+  const headers = {"Content-Type":"application/json"};
+  const t = getToken(); if(t) headers["Authorization"] = "Bearer " + t;
+  const res = await fetch(path, {method: opts.method || "GET", headers, body: opts.body ? JSON.stringify(opts.body) : undefined});
+  return res.json();
+}
+function showSection(id){
+  document.querySelectorAll("main section").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
+  const map = {"sec-menu":"nav-menu","sec-my":"nav-my","sec-shop":"nav-shop","sec-auth":"nav-auth"};
+  const b = document.getElementById(map[id]); if(b) b.classList.add("active");
+  if(id==="sec-my") loadMyOrders();
+  if(id==="sec-shop") loadShopOrders();
+  if(id==="sec-auth") renderAuth();
+}
+function authTab(which){
+  document.getElementById("tab-reg").classList.toggle("active", which==="reg");
+  document.getElementById("tab-login").classList.toggle("active", which==="login");
+  document.getElementById("form-reg").classList.toggle("hidden", which!=="reg");
+  document.getElementById("form-login").classList.toggle("hidden", which!=="login");
+}
+function renderAuth(){
+  const u = getUser();
+  const bar = document.getElementById("authbar");
+  const prof = document.getElementById("profile-box");
+  if(u){
+    bar.innerHTML = "👋 Xin chào <b>" + esc(u.name) + "</b> (" + esc(u.phone) + ")" + (u.is_owner ? " — <b>CHỦ QUÁN</b>" : "") + ' <button class="btn small secondary" onclick="doLogout()">Đăng xuất</button>';
+    document.getElementById("form-reg").classList.add("hidden");
+    document.getElementById("form-login").classList.add("hidden");
+    prof.classList.remove("hidden");
+    document.getElementById("default-address").value = localStorage.getItem("bms_address") || "";
+    document.getElementById("co-name").value = u.name;
+  } else {
+    bar.innerHTML = "Đặt hàng chỉ cần tên, không cần đăng nhập. Chủ quán đăng nhập để xem đơn.";
+    prof.classList.add("hidden");
+    document.getElementById("form-reg").classList.remove("hidden");
+    document.getElementById("form-login").classList.add("hidden");
+  }
+}
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+async function doRegister(){
+  const r = await api("/api/register", {method:"POST", body:{name:document.getElementById("reg-name").value, phone:document.getElementById("reg-phone").value, password:document.getElementById("reg-pass").value}});
+  msg("msg-auth", r.ok ? (r.message||"Đăng ký thành công, mời đăng nhập") : (r.error||"Đăng ký thất bại"), !!r.ok);
+  if(r.ok) authTab("login");
+}
+async function doLogin(){
+  const r = await api("/api/login", {method:"POST", body:{phone:document.getElementById("login-phone").value, password:document.getElementById("login-pass").value}});
+  if(!r.ok){ msg("msg-auth", r.error||"Đăng nhập thất bại"); return; }
+  localStorage.setItem("bms_token", r.token);
+  localStorage.setItem("bms_user", JSON.stringify(r.user));
+  msg("msg-auth", "Đăng nhập thành công!", true);
+  renderAuth();
+}
+function doLogout(){
+  localStorage.removeItem("bms_token"); localStorage.removeItem("bms_user");
+  renderAuth(); loadMyOrders(); loadShopOrders();
+}
+function saveAddress(){
+  localStorage.setItem("bms_address", document.getElementById("default-address").value.trim());
+  msg("msg-auth", "Đã lưu địa chỉ mặc định.", true);
+}
+function setCat(c){
+  CAT = c;
+  ["xoi","banhmi","drink"].forEach(k=>document.getElementById("cat-"+k).classList.toggle("active", k===c));
+  renderMenu();
+}
+function renderMenu(){
+  const list = document.getElementById("menu-list");
+  const items = MENU.filter(m=>m.cat===CAT);
+  if(!items.length){ list.innerHTML = "<p class='muted'>Chưa có món.</p>"; return; }
+  list.innerHTML = items.map(m=>{
+    const q = cart[m.id]||0;
+    return '<div class="item"><div><div class="name">'+esc(m.name)+'</div><div class="price">'+fmt(m.price)+'</div></div>'
+      + '<div class="qty"><button onclick="changeQty('+m.id+',-1)">−</button><span>'+q+'</span><button onclick="changeQty('+m.id+',1)">+</button></div></div>';
+  }).join("");
+}
+function changeQty(id, d){
+  cart[id] = Math.max(0, (cart[id]||0)+d);
+  if(cart[id]===0) delete cart[id];
+  localStorage.setItem("bms_cart", JSON.stringify(cart));
+  renderMenu(); renderCart();
+}
+function cartTotal(){
+  let total=0, count=0;
+  for(const id in cart){ const m=MENU.find(x=>x.id==id); if(m){ total+=m.price*cart[id]; count+=cart[id]; } }
+  return {total, count};
+}
+function renderCart(){
+  const {total, count} = cartTotal();
+  document.getElementById("cart-count").textContent = count;
+  document.getElementById("cart-total").textContent = fmt(total);
+  document.getElementById("cartbar-total").textContent = fmt(total);
+  const el = document.getElementById("cart-list");
+  const ids = Object.keys(cart);
+  if(!ids.length){ el.innerHTML = "<p class='muted'>Chưa chọn món nào.</p>"; return; }
+  el.innerHTML = ids.map(id=>{
+    const m = MENU.find(x=>x.id==id); if(!m) return "";
+    return '<div class="item"><div><div class="name">'+esc(m.name)+'</div><div class="price">'+fmt(m.price)+' × '+cart[id]+' = '+fmt(m.price*cart[id])+'</div></div>'
+      + '<div class="qty"><button onclick="changeQty('+m.id+',-1)">−</button><span>'+cart[id]+'</span><button onclick="changeQty('+m.id+',1)">+</button></div></div>';
+  }).join("");
+}
+async function placeOrder(){
+  const items = Object.keys(cart).map(id=>({id:parseInt(id), qty:cart[id]}));
+  if(!items.length){ msg("msg-order", "Giỏ hàng đang trống, hãy chọn món trước."); return; }
+  const name = document.getElementById("co-name").value.trim();
+  if(!name){ msg("msg-order", "Vui lòng nhập tên khách hàng."); return; }
+  const r = await api("/api/order", {method:"POST", body:{items, note:document.getElementById("co-note").value, name, method:document.getElementById("co-method").value, time:document.getElementById("co-time").value}});
+  if(!r.ok){ msg("msg-order", r.error||"Đặt hàng thất bại."); return; }
+  lastOrderText = r.order_text;
+  document.getElementById("success-text").textContent = r.order_text;
+  document.getElementById("success-card").classList.remove("hidden");
+  document.getElementById("success-card").scrollIntoView();
+  msg("msg-order", "Đặt hàng thành công! Đơn #" + r.order_id + " — tổng " + fmt(r.total), true);
+  cart = {}; localStorage.setItem("bms_cart", "{}");
+  renderMenu(); renderCart();
+}
+function copyOrderText(){
+  const t = lastOrderText || document.getElementById("success-text").textContent;
+  if(navigator.clipboard) navigator.clipboard.writeText(t).then(()=>alert("Đã sao chép đơn text!"));
+  else { const ta=document.createElement("textarea"); ta.value=t; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); alert("Đã sao chép đơn text!"); }
+}
+function downloadText(filename, text){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([text],{type:"text/plain;charset=utf-8"}));
+  a.download=filename; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+function downloadOrderText(){ downloadText("don-hang.txt", document.getElementById("success-text").textContent); }
+function sendSMS(){
+  const t = lastOrderText || document.getElementById("success-text").textContent;
+  window.location.href = "sms:0355368270?&body=" + encodeURIComponent(t);
+}
+function sendZalo(){
+  const t = lastOrderText || document.getElementById("success-text").textContent;
+  if(navigator.clipboard) navigator.clipboard.writeText(t).then(()=>window.open("https://zalo.me/0355368270","_blank"));
+  else window.open("https://zalo.me/0355368270","_blank");
+}
+function resetAfterOrder(){
+  document.getElementById("success-card").classList.add("hidden");
+  document.getElementById("co-note").value = "";
+  window.scrollTo(0,0);
+}
+function statusLabel(s){ return {"moi":"Mới","xac-nhan":"Đã xác nhận","hoan-thanh":"Hoàn thành","huy":"Đã hủy"}[s]||s; }
+function orderCard(o, owner){
+  let html = '<div class="order" data-id="'+o.id+'"><div class="head"><span>Đơn #'+o.id+' — '+fmt(o.total)+'</span><span class="badge '+o.status+'">'+statusLabel(o.status)+'</span></div>'
+    + '<p>'+esc(o.created_at)+' • '+esc(o.name)+' • '+esc(o.phone)+'</p>'
+    + '<p class="muted">'+esc(o.address)+'</p>'
+    + '<p>' + o.items.map(i=>esc(i.name)+' ×'+i.qty).join(', ') + '</p>'
+    + (o.note ? '<p class="muted">Ghi chú: '+esc(o.note)+'</p>' : '')
+    + '<pre class="order-text" style="margin-top:8px">'+esc(o.text||"")+'</pre>';
+  if(owner){
+    html += '<div class="row">'
+      + '<button class="btn small" onclick="setStatus('+o.id+',\'xac-nhan\')">✅ Xác nhận</button>'
+      + '<button class="btn small" onclick="setStatus('+o.id+',\'hoan-thanh\')">✔️ Hoàn thành</button>'
+      + '<button class="btn small danger" onclick="setStatus('+o.id+',\'huy\')">✖ Hủy</button>'
+      + '</div>';
+  }
+  return html + '</div>';
+}
+async function loadMyOrders(){
+  const el = document.getElementById("my-orders");
+  if(!getToken()){ el.innerHTML = "<p class='muted'>Đăng nhập để xem đơn của bạn.</p>"; return; }
+  const r = await api("/api/orders");
+  if(!r.ok){ el.innerHTML = "<p class='muted'>"+esc(r.error||"Không tải được đơn.")+"</p>"; return; }
+  el.innerHTML = r.orders.length ? r.orders.map(o=>orderCard(o,false)).join("") : "<p class='muted'>Bạn chưa có đơn nào.</p>";
+}
+function beep(){
+  if(!document.getElementById("sound-on") || !document.getElementById("sound-on").checked) return;
+  try{
+    audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==="suspended") audioCtx.resume();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.frequency.value = 880; g.gain.value = 0.15;
+    o.start(); o.stop(audioCtx.currentTime + 0.35);
+    setTimeout(()=>{ try{ const o2=audioCtx.createOscillator(), g2=audioCtx.createGain(); o2.connect(g2); g2.connect(audioCtx.destination); o2.frequency.value=880; g2.gain.value=0.15; o2.start(); o2.stop(audioCtx.currentTime+0.35);}catch(e){} }, 450);
+  }catch(e){}
+}
+async function loadShopOrders(){
+  const el = document.getElementById("shop-orders");
+  const u = getUser();
+  if(!u){ el.innerHTML = "<p class='muted'>Đăng nhập bằng số của quán để xem đơn.</p>"; return; }
+  if(!u.is_owner){ el.innerHTML = "<p class='muted'>Tài khoản này không phải chủ quán. Chỉ số 0358.96.1119 mới xem được tất cả đơn.</p>"; return; }
+  const r = await api("/api/orders");
+  if(!r.ok){ el.innerHTML = "<p class='muted'>"+esc(r.error||"Không tải được đơn.")+"</p>"; return; }
+  const maxId = r.orders.length ? Math.max.apply(null, r.orders.map(o=>o.id)) : 0;
+  const isNew = lastShopMaxId && maxId > lastShopMaxId;
+  lastShopMaxId = maxId;
+  el.innerHTML = r.orders.length ? r.orders.map(o=>orderCard(o,true)).join("") : "<p class='muted'>Chưa có đơn nào.</p>";
+  if(isNew){
+    const first = el.querySelector(".order");
+    if(first) first.classList.add("new");
+    beep();
+  }
+}
+async function setStatus(id, status){
+  const r = await api("/api/order/status", {method:"POST", body:{id, status}});
+  if(!r.ok){ alert(r.error||"Không đổi được trạng thái"); return; }
+  loadShopOrders();
+}
+async function exportAllOrders(){
+  const r = await api("/api/orders");
+  if(!r.ok){ alert(r.error||"Không tải được đơn"); return; }
+  const text = r.orders.map(o=>o.text||"").join("\n\n");
+  downloadText("tat-ca-don-hang.txt", text || "Chưa có đơn nào.\n");
+}
+document.addEventListener("click", ()=>{ if(audioCtx && audioCtx.state==="suspended") audioCtx.resume(); }, {once:true});
+setInterval(()=>{ const u=getUser(); if(u && u.is_owner && document.getElementById("sec-shop").classList.contains("active")) loadShopOrders(); }, 5000);
+(async function init(){
+  const r = await api("/api/menu");
+  if(r.ok){ MENU = r.menu; renderMenu(); renderCart(); renderAuth(); }
+  else document.getElementById("menu-list").innerHTML = "<p class='muted'>Không tải được thực đơn. Hãy kiểm tra máy chủ đang chạy.</p>";
+})();
+</script>
+</body>
+</html>

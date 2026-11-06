@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: web-dat-do-an-sang
+    env: python
+    plan: free
+    buildCommand: "echo 'Khong can cai them gi - chi dung thu vien chuan Python'"
+    startCommand: "python server.py"
