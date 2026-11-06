@@ -374,7 +374,8 @@ async function loadMyOrders(){
   const newIds = ids.filter(id=>!seenOrderIds.has(id));
   const isNew = seenOrderIds.size > 0 && newIds.length > 0;
   ids.forEach(id=>seenOrderIds.add(id));
-  el.innerHTML = r.orders.length ? r.orders.map(o=>orderCard(o,false)).join("") : "<p class='muted'>Bạn chưa có đơn nào.</p>";
+  const me = getUser();
+  el.innerHTML = r.orders.length ? r.orders.map(o=>orderCard(o, !!(me && me.is_owner))).join("") : "<p class='muted'>Bạn chưa có đơn nào.</p>";
   if(isNew){
     newIds.forEach(id=>{ const card = el.querySelector('.order[data-id="'+id+'"]'); if(card) card.classList.add("new"); });
     beep();

@@ -12,7 +12,11 @@ import hashlib
 import json
 import os
 import secrets
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+# Gio Viet Nam (UTC+7) — may chu Render chay gio UTC nen phai cong 7 gio
+VN_TZ = timezone(timedelta(hours=7))
+def now_vn():
+    return datetime.now(VN_TZ)
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Lock
 
@@ -138,7 +142,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def log_message(self, *args):
         # Ghi log gon nhe ra console
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] {args[0] % args[1:] if len(args) > 1 else args[0]}")
+        print(f"[{now_vn().strftime('%H:%M:%S')}] {args[0] % args[1:] if len(args) > 1 else args[0]}")
 
     # --- static ---
     def do_GET(self):
@@ -259,7 +263,7 @@ class Handler(BaseHTTPRequestHandler):
                 order_id = (max([o["id"] for o in orders], default=0) + 1)
                 order = {
                     "id": order_id,
-                    "created_at": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+                    "created_at": now_vn().strftime("%d/%m/%Y %H:%M:%S"),
                     "phone": phone, "name": name, "address": address,
                     "method": method, "time": time,
                     "note": note, "items": items, "total": total, "status": "moi",
