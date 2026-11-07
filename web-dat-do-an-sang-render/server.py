@@ -10,9 +10,13 @@ Don hang luu vao don-hang.txt + orders.json ngay trong thu muc nay.
 """
 import hashlib
 import json
+import math
 import os
+import random
 import secrets
 import time
+from urllib.parse import quote
+from xml.sax.saxutils import escape as xml_escape
 from collections import deque
 from datetime import datetime, timedelta, timezone
 # Gio Viet Nam (UTC+7) — may chu Render chay gio UTC nen phai cong 7 gio
@@ -80,7 +84,10 @@ ORDER_COOLDOWN_S = 3    # cung 1 IP / cung 1 ten: don thanh cong cach nhau it nh
 RATE_LIMITS = {"order": (10, 60), "login": (10, 60), "register": (5, 60), "other": (30, 60),
                # Tai trang / goi thuc don: 30 lan / IP / phut (nguoi thuong chi tai
                # 1-2 lan). KHONG gioi han /api/orders (polling 5 giay/lan la binh thuong).
-               "page": (30, 60), "menu": (30, 60)}
+               "page": (30, 60), "menu": (30, 60),
+               # Lay ma captcha: 30 lan / IP / phut (du cho nguoi that bam
+               # "Doi cau khac" vai lan; bot lay ma lien tuc se bi chan).
+               "captcha": (30, 60)}
 _rate_buckets = {}   # (ip, key) -> deque[thoi diem monotonic]
 _rate_lock = Lock()
 _last_order_ip = {}    # ip -> thoi diem don thanh cong gan nhat
@@ -160,6 +167,168 @@ def clear_login_failures(phone):
     with _login_lock:
         _login_failures.pop(phone, None)
         _login_locks.pop(phone, None)
+
+
+# --- Captcha kho (tu xay, khong dich vu ngoai, khong API key) ---
+# Thu thach gom 2 phan, phai dung CA HAI moi qua:
+#   1. Ma 5 ky tu ngau nhien (chi dung ky tu khong gay nham — bo 0/O, 1/l/I).
+#   2. Phep tinh 2 phep toan: (a + b) × c voi a,b 2-9, c 2-3.
+# Moi captcha_id chi cho sai toi da 5 lan, han dung 3 phut. Qua duoc thi
+# nhan bypass token 10 phut (gan voi IP): trong 10 phut do IP duoc mien
+# khoi cac gioi han spam (rate limit dat don, cooldown 3 giay, gioi han
+# tai trang/thuc don) — nhung van phai co order_token, honeypot, min-time
+# va gioi han so luong nhu binh thuong.
+CAPTCHA_TTL_S = 180        # 3 phut
+CAPTCHA_MAX_FAILS = 5
+CAPTCHA_BYPASS_TTL_S = 600  # 10 phut
+CAPTCHA_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+_captchas = {}       # captcha_id -> {"code", "math", "ip", "exp", "fails"}
+_captcha_bypass = {}  # bypass_token -> (ip, het han monotonic)
+_captcha_lock = Lock()
+
+
+def _captcha_svg(code, math_text):
+    """Ve anh SVG cua thu thach bang string building (stdlib only).
+    Moi ky tu xoay -35..35 do, lech doc theo duong song, co chu khac nhau,
+    hoi chong len nhau, mau dam nhat khac nhau; them 4-6 duong nhieu cat
+    ngang chu va ~85 cham nhieu. Thu tu cac the <text> trong DOM duoc xao
+    tron (vi tri hien thi khong doi) de bot doc text truc tiep tu SVG cung
+    doc sai. Chu to, tuong phan cao voi nen nen nguoi that van doc duoc."""
+    rng = random.Random(secrets.token_bytes(16))
+    W, H = 300, 122
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">',
+             f'<rect width="{W}" height="{H}" fill="#FFFDF8"/>']
+    # Cham nhieu nen (duoi chu).
+    for _ in range(55):
+        x, y = rng.randint(0, W), rng.randint(0, H)
+        col = rng.choice(["#C9BFA5", "#D8CFB8", "#B7A98A", "#E0D6BE"])
+        parts.append(f'<circle cx="{x}" cy="{y}" r="{rng.choice([1, 1, 1.5, 2])}" fill="{col}"/>')
+    code_colors = ["#1B4332", "#7C2D12", "#1E3A5F", "#4A2C0A", "#5B21B6"]
+    phase = rng.uniform(0, 6.28)
+    elems = []
+    x = 16
+    for i, ch in enumerate(code):
+        size = rng.randint(32, 42)
+        rot = rng.randint(-35, 35)
+        y = 54 + int(9 * math.sin(i * 1.1 + phase)) + rng.randint(-3, 3)
+        col = code_colors[i % len(code_colors)]
+        elems.append(f'<text x="{x}" y="{y}" font-family="monospace,sans-serif" font-size="{size}" font-weight="900" fill="{col}" transform="rotate({rot} {x} {y})">{xml_escape(ch)}</text>')
+        x += int(size * 0.82) + rng.randint(-4, 4)  # hoi chong len nhau
+    # Dong phep tinh: moi ky tu 1 the <text> rieng, xoay nhe.
+    mx = 22
+    my = 98
+    for ch in math_text:
+        size = rng.randint(19, 24)
+        rot = rng.randint(-8, 8)
+        elems.append(f'<text x="{mx}" y="{my}" font-family="monospace,sans-serif" font-size="{size}" font-weight="800" fill="#2B2118" transform="rotate({rot} {mx} {my})">{xml_escape(ch)}</text>')
+        mx += int(size * 0.62) + rng.randint(-1, 3)
+    rng.shuffle(elems)  # xao thu tu DOM, vi tri hien thi giu nguyen
+    parts.extend(elems)
+    # 4-6 duong nhieu cat ngang chu.
+    for _ in range(rng.randint(4, 6)):
+        x1, y1 = rng.randint(0, 60), rng.randint(5, H - 5)
+        x2, y2 = rng.randint(W - 60, W), rng.randint(5, H - 5)
+        col = rng.choice(["#8B5E34", "#2D6A4F", "#7A6A58", "#B4552D"])
+        parts.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{col}" stroke-width="{rng.choice([1, 1.5, 2])}" opacity="0.55"/>')
+    # Cham nhieu tren chu.
+    for _ in range(28):
+        x, y = rng.randint(0, W), rng.randint(0, H)
+        parts.append(f'<circle cx="{x}" cy="{y}" r="1" fill="#8A7B5F" opacity="0.7"/>')
+    parts.append("</svg>")
+    return "".join(parts)
+
+
+def make_captcha():
+    """Tao 1 thu thach moi: (ma 5 ky tu, dap an phep tinh, anh SVG)."""
+    rng = random.Random(secrets.token_bytes(16))
+    code = "".join(rng.choice(CAPTCHA_CODE_CHARS) for _ in range(5))
+    a, b = rng.randint(2, 9), rng.randint(2, 9)
+    c = rng.randint(2, 3)
+    math_answer = (a + b) * c
+    math_text = f"({a} + {b}) × {c} = ?"
+    return code, math_answer, _captcha_svg(code, math_text)
+
+
+def issue_captcha(ip):
+    """Cap ma captcha moi cho IP nay; dong thoi don dep ma het han."""
+    now = time.monotonic()
+    code, math_answer, svg = make_captcha()
+    cid = secrets.token_hex(16)
+    with _captcha_lock:
+        for k, v in list(_captchas.items()):
+            if v["exp"] <= now:
+                del _captchas[k]
+        _captchas[cid] = {"code": code, "math": math_answer, "ip": ip,
+                          "exp": now + CAPTCHA_TTL_S, "fails": 0}
+    print(f"CAPTCHA [{now_vn().strftime('%H:%M:%S')}] IP={ip} — cap ma {cid[:8]}...")
+    return cid, "data:image/svg+xml;charset=utf-8," + quote(svg, safe="")
+
+
+def _cleanup_captcha_bypass(now):
+    for tok, (_, exp) in list(_captcha_bypass.items()):
+        if exp <= now:
+            del _captcha_bypass[tok]
+
+
+def verify_captcha(cid, code, answer, ip):
+    """Kiem tra dap an. Tra ve (http_code, code_loi, thong_bao, bypass_token).
+    Ca ma ky tu (khong phan biet hoa/thuong) va dap an phep tinh deu phai
+    dung. Sai qua 5 lan thi huy ma, phai lay ma moi."""
+    now = time.monotonic()
+    with _captcha_lock:
+        rec = _captchas.get(cid)
+        if not rec or rec["ip"] != ip:
+            return (400, "captcha_expired",
+                    "Mã xác minh không tồn tại hoặc đã hết hạn, vui lòng bấm Đổi câu khác lấy mã mới.", None)
+        if rec["exp"] <= now:
+            del _captchas[cid]
+            return (400, "captcha_expired",
+                    "Mã xác minh đã hết hạn (3 phút), vui lòng bấm Đổi câu khác lấy mã mới.", None)
+        if rec["fails"] >= CAPTCHA_MAX_FAILS:
+            # Da sai du 5 lan: lan goi tiep theo (du dung hay sai) se huy ma.
+            del _captchas[cid]
+            print(f"CAPTCHA [{now_vn().strftime('%H:%M:%S')}] IP={ip} — sai qua 5 lan, huy ma {cid[:8]}...")
+            return (400, "captcha_locked",
+                    "Bạn đã nhập sai quá 5 lần, vui lòng bấm Đổi câu khác lấy mã mới.", None)
+        ok_code = (str(code or "").strip().upper() == rec["code"])
+        try:
+            ok_math = int(str(answer).strip()) == rec["math"]
+        except Exception:
+            ok_math = False
+        if not (ok_code and ok_math):
+            rec["fails"] += 1
+            left = CAPTCHA_MAX_FAILS - rec["fails"]
+            print(f"CAPTCHA [{now_vn().strftime('%H:%M:%S')}] IP={ip} — tra loi sai (con {left} lan)")
+            if left > 0:
+                return (400, "captcha_wrong",
+                        f"Bạn nhập chưa đúng, còn {left} lần thử.", None)
+            return (400, "captcha_wrong",
+                    "Bạn nhập chưa đúng, mã này đã hết lượt thử.", None)
+        del _captchas[cid]
+        token = secrets.token_hex(16)
+        _captcha_bypass[token] = (ip, now + CAPTCHA_BYPASS_TTL_S)
+        print(f"CAPTCHA [{now_vn().strftime('%H:%M:%S')}] IP={ip} — qua xac minh, cap bypass 10 phut")
+        return (200, None, "Xác minh thành công.", token)
+
+
+def valid_captcha_bypass(token, ip):
+    """True neu bypass token ton tai, dung IP da cap va con han 10 phut."""
+    if not token or not isinstance(token, str):
+        return False
+    now = time.monotonic()
+    with _captcha_lock:
+        _cleanup_captcha_bypass(now)
+        rec = _captcha_bypass.get(token)
+        return bool(rec and rec[0] == ip)
+
+
+def captcha_bypass_active(ip):
+    """True neu IP nay dang co bypass token con han (vd: da qua captcha o
+    tab khac). Dung de mien gioi han tai trang/thuc don cho IP do."""
+    now = time.monotonic()
+    with _captcha_lock:
+        _cleanup_captcha_bypass(now)
+        return any(tip == ip for tip, _ in _captcha_bypass.values())
 
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
@@ -367,10 +536,13 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         ip = client_ip(self)
         if self.path in ("/", "/index.html"):
-            # Chan spam refresh: cung 1 IP tai trang qua 30 lan/phut -> 429.
-            if rate_limited(ip, "page"):
+            # Chan spam refresh: cung 1 IP tai trang qua 30 lan/phut -> 429
+            # kem code captcha_required de trinh duyet mo hop thoai xac minh
+            # thay vi chi bao loi. IP da qua captcha thi duoc mien.
+            if not captcha_bypass_active(ip) and rate_limited(ip, "page"):
                 log_block(ip, "tai lai trang qua nhanh -> /")
-                self.send_json(429, {"ok": False, "error": "Bạn tải lại trang quá nhanh, vui lòng chờ một chút rồi thử lại"},
+                self.send_json(429, {"ok": False, "code": "captcha_required",
+                                     "error": "Bạn tải lại trang quá nhanh, vui lòng xác minh bạn là người thật rồi thử lại"},
                               extra_headers={"Retry-After": "60"})
                 return
             path = os.path.join(BASE_DIR, "index.html")
@@ -386,12 +558,25 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/menu":
             # Chan spam goi thuc don lien tuc; dong thoi cap ma phien dat hang
             # (ma nay bat buoc phai kem theo khi POST /api/order).
-            if rate_limited(ip, "menu"):
+            if not captcha_bypass_active(ip) and rate_limited(ip, "menu"):
                 log_block(ip, "goi /api/menu qua nhanh")
-                self.send_json(429, {"ok": False, "error": "Bạn tải lại trang quá nhanh, vui lòng chờ một chút rồi thử lại"},
+                self.send_json(429, {"ok": False, "code": "captcha_required",
+                                     "error": "Bạn tải lại trang quá nhanh, vui lòng xác minh bạn là người thật rồi thử lại"},
                               extra_headers={"Retry-After": "60"})
                 return
             self.send_json(200, {"ok": True, "menu": MENU, "order_token": issue_order_token(ip)})
+            return
+        if self.path == "/api/captcha":
+            # Cap thu thach captcha kho (ma 5 ky tu meo + phep tinh 2 phep
+            # toan). Gioi han 30 lan/IP/phut de bot khong lay ma lien tuc.
+            if rate_limited(ip, "captcha"):
+                log_block(ip, "lay captcha qua nhanh")
+                self.send_json(429, {"ok": False,
+                                     "error": "Bạn lấy mã xác minh quá nhanh, vui lòng chờ một chút rồi thử lại"},
+                              extra_headers={"Retry-After": "60"})
+                return
+            cid, svg = issue_captcha(ip)
+            self.send_json(200, {"ok": True, "captcha_id": cid, "svg": svg})
             return
         if self.path == "/api/orders":
             phone = self.auth_phone()
@@ -420,10 +605,12 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(413, {"ok": False, "error": "Dữ liệu gửi lên quá lớn, vui lòng thử lại"})
             return
         # 2. Gioi han tan suat theo IP tren tung endpoint ghi.
+        # Rieng /api/order: kiem tra trong handler (sau khi doc JSON) de
+        # biet duoc captcha_pass — IP da qua captcha duoc mien gioi han.
         rate_key = {
             "/api/order": "order", "/api/login": "login", "/api/register": "register",
         }.get(self.path, "other")
-        if rate_limited(ip, rate_key):
+        if self.path != "/api/order" and rate_limited(ip, rate_key):
             log_block(ip, f"vuot gioi han tan suat ({rate_key}) -> {self.path}")
             self.send_json(429, {"ok": False, "error": "Bạn thao tác quá nhanh, vui lòng chờ một chút rồi thử lại"},
                           extra_headers={"Retry-After": "60"})
@@ -507,6 +694,19 @@ class Handler(BaseHTTPRequestHandler):
             # Dat hang CHI CAN TEN - khong can dang nhap, khong can SDT / dia chi.
             # Neu khach da dang nhap thi lay SDT/tai khoan neu co, khong bat buoc.
             phone = self.auth_phone() or ""
+            # Bypass captcha: IP da qua xac minh (kem captcha_pass hop le
+            # hoac dang co bypass token con han) duoc mien gioi han tan
+            # suat dat don va cooldown 3 giay. Cac check khac (order_token,
+            # honeypot, min-time, gioi han so luong) VAN ap dung day du.
+            bypass_ok = valid_captcha_bypass(data.get("captcha_pass"), ip) or captcha_bypass_active(ip)
+            # Chong spam: moi IP toi da 10 don/phut. Vuot qua -> 429 kem code
+            # captcha_required de trinh duyet mo hop thoai xac minh.
+            if not bypass_ok and rate_limited(ip, "order"):
+                log_block(ip, "vuot gioi han dat don (10/phut) -> /api/order")
+                self.send_json(429, {"ok": False, "code": "captcha_required",
+                                     "error": "Bạn đặt đơn quá nhanh, vui lòng xác minh bạn là người thật rồi thử lại"},
+                              extra_headers={"Retry-After": "60"})
+                return
             # Ma phien dat hang: bat buoc phai lay tu GET /api/menu truoc
             # (gan voi IP, han 10 phut). Bot POST thang khong co ma -> 403.
             # Frontend gap loi nay se tu lay ma moi roi gui lai 1 lan.
@@ -544,9 +744,11 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(400, {"ok": False, "error": f"Tên quá dài (tối đa {MAX_NAME_LEN} ký tự)"})
                 return
             # Chong spam: cung 1 IP / cung 1 ten vua dat don xong thi phai doi 3 giay.
-            if order_cooldown_active(ip, name):
+            # IP da qua captcha duoc mien. Vuot qua -> 429 kem code de mo captcha.
+            if not bypass_ok and order_cooldown_active(ip, name):
                 log_block(ip, f"don cach nhau < {ORDER_COOLDOWN_S}s (ten: {name})")
-                self.send_json(429, {"ok": False, "error": "Bạn vừa đặt đơn, vui lòng chờ vài giây rồi đặt tiếp"},
+                self.send_json(429, {"ok": False, "code": "captcha_required",
+                                     "error": "Bạn vừa đặt đơn, vui lòng xác minh bạn là người thật rồi đặt tiếp"},
                               extra_headers={"Retry-After": "3"})
                 return
             items_in = data.get("items") or []
@@ -711,6 +913,19 @@ class Handler(BaseHTTPRequestHandler):
                 order["text"] = order_text(order)
                 save_json(ORDERS_FILE, orders)
             self.send_json(200, {"ok": True, "message": "Đã cập nhật trạng thái"})
+            return
+
+        if self.path == "/api/captcha/verify":
+            # Xac minh dap an captcha kho: ca ma ky tu (khong phan biet
+            # hoa/thuong) va dap an phep tinh deu phai dung. Dung thi tra
+            # bypass token 10 phut (gan voi IP); sai qua 5 lan thi huy ma.
+            cid = str(data.get("captcha_id") or "")
+            http_code, err_code, msg_text, token = verify_captcha(
+                cid, data.get("code"), data.get("answer"), ip)
+            if http_code != 200:
+                self.send_json(http_code, {"ok": False, "code": err_code, "error": msg_text})
+                return
+            self.send_json(200, {"ok": True, "message": msg_text, "bypass_token": token})
             return
 
         self.send_json(404, {"ok": False, "error": "Không tìm thấy"})

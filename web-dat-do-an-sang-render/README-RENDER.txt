@@ -125,3 +125,51 @@ CHẶN SPAM REFRESH + BẢO MẬT THÊM (bản cập nhật 07/11/2026):
   10 phút thì khóa số đó 15 phút (trả 429, báo rõ bằng tiếng Việt).
   Đăng nhập đúng sẽ xóa hết lịch sử sai. Chủ quán đăng nhập đúng như
   bình thường không bị ảnh hưởng.
+
+CAPTCHA KHÓ — NHẢY CAPTCHA KHI SPAM (bản cập nhật 07/11/2026):
+- Khi máy chủ chặn spam (đặt đơn quá 10 lần/phút, 2 đơn cách nhau dưới
+  3 giây, tải lại trang/thực đơn quá 30 lần/phút), thay vì chỉ báo lỗi
+  429, trang sẽ NHẢY HỘP THOẠI CAPTCHA để khách xác minh mình là người
+  thật rồi tự gửi lại đơn / tải lại thực đơn. Khách dùng bình thường
+  (không chạm ngưỡng spam) KHÔNG BAO GIỜ thấy captcha. Đăng nhập sai
+  nhiều lần vẫn khóa 15 phút như cũ, KHÔNG có captcha ở đăng nhập.
+- Captcha tự xây trong máy chủ, không dùng dịch vụ ngoài, không cần
+  đăng ký API key: mỗi lần hiện là 1 ảnh SVG vẽ bằng code (không cần
+  thư viện ảnh) gồm mã 5 ký tự (chỉ dùng ký tự không gây nhầm — bỏ
+  0/O, 1/l/I) KÈM phép tính 2 phép toán, vd (7 + 4) × 3. Người dùng
+  phải nhập ĐÚNG CẢ HAI: mã ký tự (không phân biệt hoa/thường) và đáp
+  án phép tính — 2 ô nhập trong hộp thoại.
+- Méo hình mạnh nhưng người thật vẫn đọc được: mỗi ký tự xoay ngẫu
+  nhiên -35°..35°, lệch dọc theo đường sóng, cỡ chữ khác nhau từng ký
+  tự, hơi chồng lên nhau, màu đậm nhạt khác nhau, 4-6 đường nhiễu cắt
+  ngang chữ, ~85 chấm nhiễu nền, chữ to tương phản cao với nền. Thứ tự
+  các ký tự trong mã nguồn SVG còn được xáo trộn nên bot đọc text trực
+  tiếp từ ảnh cũng đọc sai thứ tự.
+- Mỗi mã chỉ cho sai tối đa 5 lần (hiển thị số lần còn lại), sai lần
+  thứ 6 thì mã bị hủy, phải bấm "Đổi câu khác" lấy mã mới. Mã chỉ có
+  hạn 3 phút. Qua được thì nhận bypass token 10 phút gắn với IP: trong
+  10 phút đó IP được miễn các giới hạn spam (tốc độ đặt đơn, cooldown
+  3 giây, giới hạn tải trang) nhưng vẫn phải có mã phiên đặt hàng,
+  honeypot, đơn gửi đủ 0.8 giây và giới hạn số lượng như bình thường.
+  Mọi lần cấp mã / đoán sai / qua / bị hủy đều ghi log trên máy chủ.
+- API mới (máy chủ): GET /api/captcha trả {captcha_id, svg} (ảnh SVG
+  dạng data URI, xem được ngay không cần tải thêm); POST /api/captcha/verify
+  với {captcha_id, code, answer} trả 200 + bypass_token khi đúng,
+  400 khi sai/hết hạn (kèm mã lỗi captcha_wrong / captcha_expired /
+  captcha_locked để trang tự đổi mã mới). Đơn POST kèm thêm trường
+  captcha_pass (bypass token) khi có.
+
+## Giao diện mới (07/11/2026) — xanh lá đậm + kem, giỏ hàng sidebar
+- Phong cách mới: nền kem ấm, xanh lá đậm (#1B4332/#2D6A4F) + nâu gỗ, thẻ
+  trắng, bóng mềm, font hệ thống, không tài nguyên ngoài. Tên quán, địa chỉ,
+  chip liên hệ, tagline, badge, 4 tab điều hướng và thẻ món (icon emoji +
+  gợi ý vị) giữ nguyên nội dung, chỉ đổi màu theo phong cách mới.
+- Giỏ hàng dạng sidebar trượt ra từ phải (rộng 420px desktop, 94vw mobile):
+  nút "Giỏ hàng" cố định góc phải trên desktop (nằm trong header trên mobile),
+  hiện số món + tổng tiền. Bấm nút mở sidebar, bấm lớp mờ / nút ✕ / phím
+  Escape để đóng, trượt mượt ~0.3s, khi mở sẽ khóa cuộn trang chính.
+  Trong sidebar: danh sách món (tăng/giảm số lượng, thành tiền từng dòng),
+  tổng tiền và form đặt hàng (tên, hình thức, giờ nhận, ghi chú) như cũ.
+  Đặt đơn thành công thì sidebar tự đóng và hiện thẻ thành công ở trang chính.
+- Đã bỏ thanh giỏ nổi dưới cùng. Cảnh báo beforeunload (giỏ có món / đơn
+  đang gửi) và chặn spam refresh vẫn hoạt động như trước.

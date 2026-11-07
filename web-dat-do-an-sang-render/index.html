@@ -7,42 +7,42 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --brand:#FFD23F; --brand-deep:#FF9E00; --orange:#FF6B00;
-  --ink:#241f14; --muted:#6b6455;
-  --bg:#FFF6DB; --bg-soft:#FFFDF4; --card:#ffffff; --line:#f0e3b2; --red:#c1272d;
-  --green:#16a34a; --green-dark:#14532d; --blue:#2563eb; --blue-dark:#1e40af;
+  --brand:#2D6A4F; --brand-deep:#1B4332; --orange:#8B5E34;
+  --ink:#2B2118; --muted:#7A6A58;
+  --bg:#FAF6EF; --bg-soft:#FFFDF8; --card:#ffffff; --line:#E8DFCE; --red:#B4552D;
+  --green:#2D6A4F; --green-dark:#1B4332; --blue:#2563eb; --blue-dark:#1e40af;
   --radius:20px;
-  --shadow:0 10px 28px rgba(80,50,0,.10); --shadow-sm:0 2px 10px rgba(80,50,0,.07);
+  --shadow:0 10px 28px rgba(60,45,20,.10); --shadow-sm:0 2px 10px rgba(60,45,20,.07);
   --space:16px;
 }
 html{-webkit-text-size-adjust:100%}
 body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;font-size:16px}
 button{font-family:inherit}
-button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #2D6A4F;outline-offset:2px}
 
 /* ===== Hero banner: storefront ===== */
-header{position:relative;overflow:hidden;background:linear-gradient(135deg,#FFD23F 0%,#FFB800 45%,#FF8A00 78%,#FF6B00 100%);padding:34px 18px 26px;text-align:center;color:#241f14}
-header::before{content:"🍚  🥖  🥤  🍋  🥚";position:absolute;left:0;right:0;bottom:-14px;font-size:44px;letter-spacing:22px;opacity:.16;white-space:nowrap;pointer-events:none}
-header::after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.22);top:-90px;right:-60px;pointer-events:none}
-header .hero-eyebrow{display:inline-block;background:rgba(255,255,255,.9);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#8a5a00}
-header h1{font-size:36px;letter-spacing:.5px;font-weight:900;margin-top:12px;text-shadow:0 2px 0 rgba(255,255,255,.35)}
+header{position:relative;overflow:hidden;background:linear-gradient(135deg,#1B4332 0%,#2D6A4F 55%,#40916C 100%);padding:34px 18px 26px;text-align:center;color:#F7F3E8}
+header::before{content:"🍚  🥖  🥤  🍋  🥚";position:absolute;left:0;right:0;bottom:-14px;font-size:44px;letter-spacing:22px;opacity:.14;white-space:nowrap;pointer-events:none}
+header::after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.10);top:-90px;right:-60px;pointer-events:none}
+header .hero-eyebrow{display:inline-block;background:rgba(255,255,255,.92);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#1B4332}
+header h1{font-size:36px;letter-spacing:.5px;font-weight:900;margin-top:12px;text-shadow:0 2px 0 rgba(0,0,0,.25)}
 header .tagline{font-size:17px;margin-top:8px;font-weight:700}
-header .addr{font-size:15px;margin-top:6px;font-weight:600;opacity:.9}
+header .addr{font-size:15px;margin-top:6px;font-weight:600;opacity:.92}
 .hero-badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
-.hero-badges span{background:rgba(36,31,20,.88);color:#FFD23F;border-radius:999px;padding:7px 13px;font-size:13.5px;font-weight:800}
+.hero-badges span{background:rgba(20,40,28,.55);color:#F7F3E8;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:7px 13px;font-size:13.5px;font-weight:800}
 .contact-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px;position:relative;z-index:1}
-.chip{display:inline-flex;align-items:center;gap:6px;min-height:46px;padding:9px 18px;background:#fff;border-radius:999px;font-weight:800;font-size:15px;color:var(--ink);text-decoration:none;box-shadow:0 4px 14px rgba(60,30,0,.22);transition:transform .15s ease}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:46px;padding:9px 18px;background:#fff;border-radius:999px;font-weight:800;font-size:15px;color:var(--ink);text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.25);transition:transform .15s ease}
 .chip:hover{transform:translateY(-2px)}
 .chip small{font-weight:600;color:var(--muted)}
 
 /* ===== Sticky nav ===== */
-nav{position:sticky;top:0;z-index:10;display:flex;gap:8px;padding:10px 12px;background:rgba(255,253,244,.97);box-shadow:0 2px 14px rgba(60,40,0,.10);overflow-x:auto;scrollbar-width:none;backdrop-filter:blur(6px)}
+nav{position:sticky;top:0;z-index:10;display:flex;gap:8px;padding:10px 12px;background:rgba(250,246,239,.97);box-shadow:0 2px 14px rgba(60,45,20,.10);overflow-x:auto;scrollbar-width:none;backdrop-filter:blur(6px)}
 nav::-webkit-scrollbar{display:none}
-nav button{flex:1 0 auto;min-height:46px;padding:10px 18px;border:2px solid #e8ddba;background:#fff;border-radius:999px;font-weight:800;font-size:15px;cursor:pointer;white-space:nowrap;color:var(--ink);transition:background .15s ease,transform .15s ease}
+nav button{flex:1 0 auto;min-height:46px;padding:10px 18px;border:2px solid #E8DFCE;background:#fff;border-radius:999px;font-weight:800;font-size:15px;cursor:pointer;white-space:nowrap;color:var(--ink);transition:background .15s ease,transform .15s ease}
 nav button:hover{transform:translateY(-1px)}
-nav button.active{background:linear-gradient(135deg,#FFD23F,#FFB800);border-color:var(--ink)}
+nav button.active{background:var(--brand);border-color:var(--brand);color:#fff}
 
-main{max-width:920px;margin:0 auto;padding:24px 14px 170px}
+main{max-width:920px;margin:0 auto;padding:24px 14px 48px}
 section{display:none}
 section.active{display:block}
 .section-head{margin:4px 2px 16px}
@@ -55,29 +55,29 @@ h3{font-size:17px;margin-bottom:4px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px;box-shadow:var(--shadow)}
 label{display:block;font-weight:800;margin:14px 0 6px;font-size:15px}
 label .required{color:var(--red)}
-input,textarea,select{width:100%;padding:13px 14px;border:2px solid #e5d9a8;border-radius:12px;font-size:16px;background:#fffdf5;color:var(--ink);transition:border-color .15s ease,box-shadow .15s ease}
-input:focus,textarea:focus,select:focus{border-color:var(--ink);outline:none;box-shadow:0 0 0 3px rgba(255,210,63,.5)}
+input,textarea,select{width:100%;padding:13px 14px;border:2px solid #DDD3BC;border-radius:12px;font-size:16px;background:#fff;color:var(--ink);transition:border-color .15s ease,box-shadow .15s ease}
+input:focus,textarea:focus,select:focus{border-color:var(--brand);outline:none;box-shadow:0 0 0 3px rgba(45,106,79,.25)}
 .field-icon{position:relative}
 .field-icon>span{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;pointer-events:none}
 .field-icon input{padding-left:44px}
-.form-section{background:#fffdf5;border:1px dashed #e5d9a8;border-radius:16px;padding:16px;margin-top:16px}
+.form-section{background:#F7F2E6;border:1px dashed #DDD3BC;border-radius:16px;padding:16px;margin-top:16px}
 .form-section .hint{color:var(--muted);font-size:14px;margin-top:8px}
-button.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;background:var(--brand);border:2px solid var(--ink);border-radius:14px;padding:12px 20px;font-weight:800;cursor:pointer;font-size:16px;color:var(--ink);box-shadow:0 3px 0 var(--ink);transition:transform .12s ease,box-shadow .12s ease}
+button.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;background:var(--brand);border:2px solid var(--brand);border-radius:14px;padding:12px 20px;font-weight:800;cursor:pointer;font-size:16px;color:#fff;box-shadow:0 2px 8px rgba(27,67,50,.20);transition:transform .12s ease,box-shadow .12s ease}
 button.btn:hover{transform:translateY(-1px)}
 button.btn:active{transform:translateY(2px);box-shadow:none}
-button.btn.secondary{background:#fff}
-button.btn.small{min-height:44px;padding:10px 16px;font-size:15px;box-shadow:0 2px 0 var(--ink)}
-button.btn.danger{background:#ef4444;border-color:#991b1b;color:#fff;box-shadow:0 3px 0 #991b1b}
-button.btn.confirm{background:#16a34a;border-color:#14532d;color:#fff;box-shadow:0 3px 0 #14532d}
-button.btn.done{background:#2563eb;border-color:#1e40af;color:#fff;box-shadow:0 3px 0 #1e40af}
-button.btn.sms{background:#22c55e;border-color:#15803d;color:#fff;box-shadow:0 3px 0 #15803d}
-button.btn.zalo{background:#2563eb;border-color:#1e40af;color:#fff;box-shadow:0 3px 0 #1e40af}
-button.btn-dark{background:var(--ink);border-color:var(--ink);color:var(--brand);box-shadow:0 3px 0 #000}
+button.btn.secondary{background:#fff;border-color:#CFC3A5;color:var(--brand)}
+button.btn.small{min-height:44px;padding:10px 16px;font-size:15px}
+button.btn.danger{background:#DC2626;border-color:#DC2626;color:#fff;box-shadow:0 2px 8px rgba(220,38,38,.25)}
+button.btn.confirm{background:#2D6A4F;border-color:#2D6A4F;color:#fff;box-shadow:0 2px 8px rgba(45,106,79,.25)}
+button.btn.done{background:#2563eb;border-color:#2563eb;color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.25)}
+button.btn.sms{background:#16a34a;border-color:#16a34a;color:#fff;box-shadow:0 2px 8px rgba(22,163,74,.25)}
+button.btn.zalo{background:#2563eb;border-color:#2563eb;color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.25)}
+button.btn-dark{background:var(--ink);border-color:var(--ink);color:#F7F3E8;box-shadow:0 2px 8px rgba(0,0,0,.25)}
 button.btn-block{width:100%;min-height:58px;font-size:18px}
-button.btn-cta{background:linear-gradient(135deg,#FFD23F,#FF9E00);border:2px solid var(--ink);box-shadow:0 4px 0 var(--ink)}
+button.btn-cta{background:linear-gradient(135deg,#2D6A4F,#40916C);border:2px solid var(--brand-deep);box-shadow:0 4px 14px rgba(27,67,50,.30)}
 .tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.tabs button{flex:1;min-width:90px;min-height:48px;padding:10px 12px;border:2px solid #e5d9a8;border-radius:999px;background:#fff;font-weight:800;font-size:15px;cursor:pointer;color:var(--ink);transition:background .15s ease}
-.tabs button.active{background:var(--ink);color:var(--brand);border-color:var(--ink)}
+.tabs button{flex:1;min-width:90px;min-height:48px;padding:10px 12px;border:2px solid #DDD3BC;border-radius:999px;background:#fff;font-weight:800;font-size:15px;cursor:pointer;color:var(--ink);transition:background .15s ease}
+.tabs button.active{background:var(--brand);color:#fff;border-color:var(--brand)}
 
 /* ===== Search ===== */
 .search-wrap{position:relative;margin-bottom:14px}
@@ -91,39 +91,48 @@ button.btn-cta{background:linear-gradient(135deg,#FFD23F,#FF9E00);border:2px sol
 .dish:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
 .dish:active{transform:scale(.985)}
 .dish-icon{flex:0 0 auto;width:58px;height:58px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px}
-.dish-icon.icon-xoi{background:linear-gradient(135deg,#FEF3C7,#FDE68A)}
-.dish-icon.icon-banhmi{background:linear-gradient(135deg,#FFEDD5,#FED7AA)}
-.dish-icon.icon-drink{background:linear-gradient(135deg,#CFFAFE,#BAE6FD)}
+.dish-icon.icon-xoi{background:linear-gradient(135deg,#D8F3DC,#B7E4C7)}
+.dish-icon.icon-banhmi{background:linear-gradient(135deg,#F5E6CC,#EAD9B8)}
+.dish-icon.icon-drink{background:linear-gradient(135deg,#D8EFE7,#C2E3D6)}
 .dish-body{flex:1;min-width:0}
 .dish .name{font-weight:800;font-size:17px;line-height:1.3}
 .dish .dish-hint{font-size:13.5px;color:var(--muted);margin-top:2px}
 .dish .price{color:var(--red);font-weight:900;font-size:18px;margin-top:4px;white-space:nowrap}
-.dish .cat-label{display:inline-block;font-size:12px;font-weight:800;color:var(--muted);background:#f5ecd0;border-radius:999px;padding:2px 8px;margin-top:4px}
+.dish .cat-label{display:inline-block;font-size:12px;font-weight:800;color:var(--muted);background:#EFE7D3;border-radius:999px;padding:2px 8px;margin-top:4px}
 .dish-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
 .qty{display:flex;align-items:center;gap:8px}
-.qty button{width:44px;height:44px;border-radius:50%;border:2px solid var(--ink);background:var(--brand);font-size:20px;font-weight:900;cursor:pointer;line-height:1;transition:transform .12s ease}
+.qty button{width:44px;height:44px;border-radius:50%;border:2px solid var(--brand);background:#fff;color:var(--brand);font-size:20px;font-weight:900;cursor:pointer;line-height:1;transition:transform .12s ease}
 .qty button:active{transform:scale(.92)}
 .qty span{min-width:26px;text-align:center;font-weight:900;font-size:17px}
-.btn-add{min-height:44px;padding:10px 18px;border-radius:999px;border:2px solid var(--ink);background:var(--ink);color:var(--brand);font-weight:900;font-size:15px;cursor:pointer;transition:transform .12s ease}
+.btn-add{min-height:44px;padding:10px 18px;border-radius:999px;border:2px solid var(--brand);background:var(--brand);color:#fff;font-weight:900;font-size:15px;cursor:pointer;transition:transform .12s ease}
 .btn-add:active{transform:translateY(2px)}
 
 /* Cart lines reuse the simple .item row */
-.item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px;border:1px solid var(--line);border-radius:16px;margin-bottom:10px;background:#fffdf5;box-shadow:var(--shadow-sm)}
+.item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px;border:1px solid var(--line);border-radius:16px;margin-bottom:10px;background:#F7F2E6;box-shadow:var(--shadow-sm)}
 .item:last-child{margin-bottom:0}
 .item .name{font-weight:800;font-size:17px}
 .item .price{color:var(--red);font-weight:900;font-size:18px;margin-top:2px;white-space:nowrap}
 .item-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
 
-/* ===== Floating pill cart bar ===== */
-#cartbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;width:min(920px,calc(100% - 24px));background:#241f14;color:#fff;padding:10px 10px 10px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px;z-index:20;border-radius:999px;box-shadow:0 14px 34px rgba(0,0,0,.38)}
-#cartbar .total{font-weight:900;font-size:19px;color:var(--brand)}
-#cartbar button{background:linear-gradient(135deg,#FFD23F,#FFB800);border:none;border-radius:999px;padding:12px 20px;font-weight:900;cursor:pointer;font-size:15px;min-height:46px;color:var(--ink);white-space:nowrap}
+/* ===== Nut gio hang (goc phai) + sidebar truot ra tu phai ===== */
+#cart-open-btn{position:fixed;top:14px;right:14px;z-index:40;display:inline-flex;align-items:center;gap:8px;min-height:50px;padding:10px 18px;border:none;border-radius:999px;background:var(--brand-deep);color:#F7F3E8;font-weight:900;font-size:15px;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.30);transition:transform .15s ease}
+#cart-open-btn:hover{transform:translateY(-1px)}
+#cart-open-btn .cart-count-badge{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;padding:0 7px;border-radius:999px;background:#E9C46A;color:#1B4332;font-weight:900;font-size:14px}
+#cart-overlay{position:fixed;inset:0;z-index:50;background:rgba(30,25,15,.55)}
+#cart-drawer{position:fixed;top:0;right:0;bottom:0;z-index:60;width:min(420px,94vw);background:var(--bg-soft);box-shadow:-12px 0 40px rgba(0,0,0,.25);transform:translateX(105%);transition:transform .3s ease;display:flex;flex-direction:column}
+#cart-drawer.open{transform:translateX(0)}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 18px 12px;border-bottom:1px solid var(--line)}
+.drawer-head h2{margin:0;font-size:21px}
+.drawer-close{width:44px;height:44px;border-radius:50%;border:2px solid var(--line);background:#fff;font-size:18px;font-weight:900;cursor:pointer;color:var(--ink);flex:0 0 auto}
+.drawer-body{flex:1;overflow-y:auto;padding:16px 18px 24px}
+.drawer-total{display:flex;justify-content:space-between;align-items:center;font-size:19px;font-weight:900;padding:12px 0;border-top:2px dashed var(--line);margin-top:12px}
+.drawer-total .amount{color:var(--red)}
 
 /* ===== Messages, orders ===== */
 .msg{padding:12px 14px;border-radius:12px;margin:12px 0;font-weight:600;font-size:15px}
 .msg.err{background:#fff7ed;border:2px solid #f59e0b;color:#7c2d12}
 .msg.ok{background:#dcfce7;border:2px solid #16a34a;color:#14532d}
-.note-pill{display:inline-block;background:#FFF3C4;border:1px solid #f0d060;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;color:#5b4a00;margin-bottom:12px}
+.note-pill{display:inline-block;background:#EFE7D3;border:1px solid #DDD3BC;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;color:#5B4A2A;margin-bottom:12px}
 .cancel-notice{background:#FEF3C7;border:2px solid #f59e0b;border-left:6px solid #f59e0b;border-radius:14px;padding:12px 14px;margin:6px 0;font-weight:700;color:#7c2d12}
 pre.order-text{background:#141210;color:#4ade80;padding:16px;border-radius:14px;white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.6;overflow:auto}
 .order{border:1px solid var(--line);border-left:6px solid #d6c48a;border-radius:18px;padding:16px;margin-bottom:14px;background:#fff;box-shadow:var(--shadow-sm);transition:transform .15s ease}
@@ -160,15 +169,14 @@ pre.order-text{background:#141210;color:#4ade80;padding:16px;border-radius:14px;
 html{scroll-behavior:smooth}
 section.active{animation:fadeUp .28s ease both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-#cartbar{transition:transform .3s ease,opacity .3s ease}
-#cartbar.cart-bump{animation:cartBump .3s ease}
-@keyframes cartBump{0%{transform:translateX(-50%) scale(1)}40%{transform:translateX(-50%) scale(1.03)}100%{transform:translateX(-50%) scale(1)}}
+#cart-open-btn.bump{animation:cartBump .3s ease}
+@keyframes cartBump{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
 .order{animation:fadeUp .25s ease both}
 .dish .qty span{transition:transform .15s ease}
-button:disabled{opacity:.6;cursor:not-allowed;transform:none!important;box-shadow:0 3px 0 var(--ink)}
+button:disabled{opacity:.6;cursor:not-allowed;transform:none!important;box-shadow:none}
 /* Skeleton khi dang tai thuc don */
 .skeleton{pointer-events:none;background:#fff}
-.skeleton .sk{border-radius:12px;background:linear-gradient(90deg,#f3ead0 25%,#fbf5dd 50%,#f3ead0 75%);background-size:200% 100%;animation:shimmer 1.2s infinite linear}
+.skeleton .sk{border-radius:12px;background:linear-gradient(90deg,#EFE7D3 25%,#F7F2E6 50%,#EFE7D3 75%);background-size:200% 100%;animation:shimmer 1.2s infinite linear}
 @keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
 @media (prefers-reduced-motion: reduce){
   html{scroll-behavior:auto}
@@ -178,17 +186,27 @@ button:disabled{opacity:.6;cursor:not-allowed;transform:none!important;box-shado
 #refresh-block{position:fixed;inset:0;z-index:100;background:rgba(20,16,8,.93);display:flex;align-items:center;justify-content:center;padding:20px}
 #refresh-block .rb-card{background:#fff;border-radius:20px;padding:28px 24px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.4)}
 #refresh-block .rb-count{font-size:56px;font-weight:900;color:var(--red);line-height:1;margin:10px 0}
+/* ===== Captcha kho: modal xac minh khi bi chan spam ===== */
+#captcha-modal{position:fixed;inset:0;z-index:95;background:rgba(30,25,15,.65);display:flex;align-items:center;justify-content:center;padding:20px}
+#captcha-card{background:#fff;border-radius:20px;padding:26px 24px;max-width:440px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+#captcha-card h2{margin:0 0 6px;font-size:21px}
+#captcha-img{display:block;width:100%;max-width:300px;margin:14px auto 4px;border:2px solid var(--line);border-radius:14px;background:#FFFDF8}
+#captcha-card input#captcha-code{text-transform:uppercase}
 @media(max-width:640px){
   header h1{font-size:27px}
   header::before{font-size:32px}
+  #cart-open-btn{position:static;margin:16px auto 0;box-shadow:0 4px 14px rgba(0,0,0,.25)}
   .menu-grid{grid-template-columns:1fr}
   .dish{flex-wrap:wrap}
   .dish-controls{width:100%;justify-content:space-between}
   .btn-grid{grid-template-columns:1fr}
-  main{padding-bottom:180px}
+  main{padding-bottom:48px}
   nav{flex-wrap:nowrap;justify-content:flex-start}
   nav button{flex:0 0 auto}
   .card{padding:16px}
+}
+@media(min-width:641px){
+  nav{padding-right:200px}
 }
 </style>
 </head>
@@ -203,6 +221,7 @@ button:disabled{opacity:.6;cursor:not-allowed;transform:none!important;box-shado
     <a class="chip" href="tel:0358961119">📞 Gọi quán: 0358.96.1119</a>
     <a class="chip" href="sms:0355368270">💬 SMS / Zalo: 0355 368 270</a>
   </div>
+  <button id="cart-open-btn" onclick="openCart()">🧺 Giỏ hàng <span class="cart-count-badge" id="cart-count">0</span> • <span id="cartbar-total">0đ</span></button>
 </header>
 <nav>
   <button id="nav-menu" class="active" onclick="showSection('sec-menu')">🍽️ Đặt món</button>
@@ -249,7 +268,7 @@ button:disabled{opacity:.6;cursor:not-allowed;transform:none!important;box-shado
   <section id="sec-menu">
     <div class="section-head">
       <h2>🍽️ Thực đơn sáng nay</h2>
-      <p>Chọn món, bấm “+ Thêm” — giỏ hàng luôn hiện tổng tiền ở dưới cùng.</p>
+      <p>Chọn món, bấm “+ Thêm” — bấm nút 🧺 Giỏ hàng ở góc phải để xem giỏ và đặt hàng.</p>
     </div>
     <div class="search-wrap">
       <span class="search-icon">🔍</span>
@@ -261,32 +280,6 @@ button:disabled{opacity:.6;cursor:not-allowed;transform:none!important;box-shado
       <button id="cat-drink" onclick="setCat('drink')">🥤 Drink (5)</button>
     </div>
     <div id="menu-list" class="menu-grid"><p class="muted">Đang tải thực đơn...</p></div>
-
-    <div class="card" id="cart-card" style="margin-top:18px">
-      <h2>🧺 Giỏ hàng</h2>
-      <div id="cart-list"><p class="muted">Chưa chọn món nào.</p></div>
-      <p style="font-size:19px;margin-top:10px">Tổng tiền: <b id="cart-total">0đ</b></p>
-      <div class="form-section">
-        <h3>🧾 Thông tin đặt hàng</h3>
-        <label>Tên khách hàng <span class="required">*</span></label>
-        <div class="field-icon"><span>👤</span><input id="co-name" placeholder="Ví dụ: Nguyễn Văn A"></div>
-        <label>Hình thức (không bắt buộc)</label>
-        <select id="co-method">
-          <option value="">-- Chọn hình thức --</option>
-          <option value="Giao tận nơi">🛵 Giao tận nơi</option>
-          <option value="Nhận tại quán">🏪 Nhận tại quán</option>
-        </select>
-        <label>Giờ muốn nhận món (không bắt buộc)</label><input id="co-time" placeholder="Ví dụ: 7h30 sáng nay, hoặc Càng sớm càng tốt">
-        <label>Ghi chú (không bắt buộc)</label><textarea id="co-note" rows="2" placeholder="VD: ít cay, thêm tương ớt..."></textarea>
-        <!-- Honeypot chong bot: o an, nguoi that khong bao gio dien; bot dien vao se bi may chu chan. -->
-        <div style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden" aria-hidden="true">
-          <label>Website <input id="co-website" name="website" tabindex="-1" autocomplete="off"></label>
-        </div>
-        <div id="msg-order"></div>
-        <br><button id="btn-place-order" class="btn btn-block btn-cta" onclick="placeOrder()">📤 Bắn đơn về quán</button>
-        <p class="hint">Đặt hàng chỉ cần tên, không cần đăng nhập, không cần số điện thoại hay địa chỉ. Đơn sẽ được lưu ngay trên máy chủ của quán.</p>
-      </div>
-    </div>
 
     <div class="card hidden" id="success-card">
       <div class="success-head"><span class="check">✓</span><div><h2 style="margin:0">Đặt hàng thành công!</h2><p class="muted" style="margin:2px 0 0">Đơn của bạn đã gửi về máy chủ của quán dưới dạng text:</p></div></div>
@@ -334,10 +327,35 @@ button:disabled{opacity:.6;cursor:not-allowed;transform:none!important;box-shado
   </section>
 </main>
 
-<div id="cartbar">
-  <span>🧺 <span id="cart-count">0</span> món &nbsp;|&nbsp; Tổng <span class="total" id="cartbar-total">0đ</span></span>
-  <button onclick="showSection('sec-menu');document.getElementById('cart-card').scrollIntoView({behavior:'smooth'})">Xem giỏ &amp; Đặt hàng →</button>
-</div>
+<!-- Gio hang dang sidebar truot ra tu phai (thay cho thanh gio noi truoc day). -->
+<div id="cart-overlay" class="hidden" onclick="closeCart()"></div>
+<aside id="cart-drawer" aria-label="Giỏ hàng">
+  <div class="drawer-head"><h2>🧺 Giỏ hàng</h2><button class="drawer-close" onclick="closeCart()" aria-label="Đóng giỏ hàng">✕</button></div>
+  <div class="drawer-body">
+    <div id="cart-list"><p class="muted">Chưa chọn món nào.</p></div>
+    <p class="drawer-total">Tổng tiền: <b class="amount" id="cart-total">0đ</b></p>
+    <div class="form-section">
+      <h3>🧾 Thông tin đặt hàng</h3>
+      <label>Tên khách hàng <span class="required">*</span></label>
+      <div class="field-icon"><span>👤</span><input id="co-name" placeholder="Ví dụ: Nguyễn Văn A"></div>
+      <label>Hình thức (không bắt buộc)</label>
+      <select id="co-method">
+        <option value="">-- Chọn hình thức --</option>
+        <option value="Giao tận nơi">🛵 Giao tận nơi</option>
+        <option value="Nhận tại quán">🏪 Nhận tại quán</option>
+      </select>
+      <label>Giờ muốn nhận món (không bắt buộc)</label><input id="co-time" placeholder="Ví dụ: 7h30 sáng nay, hoặc Càng sớm càng tốt">
+      <label>Ghi chú (không bắt buộc)</label><textarea id="co-note" rows="2" placeholder="VD: ít cay, thêm tương ớt..."></textarea>
+      <!-- Honeypot chong bot: o an, nguoi that khong bao gio dien; bot dien vao se bi may chu chan. -->
+      <div style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden" aria-hidden="true">
+        <label>Website <input id="co-website" name="website" tabindex="-1" autocomplete="off"></label>
+      </div>
+      <div id="msg-order"></div>
+      <br><button id="btn-place-order" class="btn btn-block btn-cta" onclick="placeOrder()">📤 Bắn đơn về quán</button>
+      <p class="hint">Đặt hàng chỉ cần tên, không cần đăng nhập, không cần số điện thoại hay địa chỉ. Đơn sẽ được lưu ngay trên máy chủ của quán.</p>
+    </div>
+  </div>
+</aside>
 
 <!-- Chan spam refresh: hien khi tai lai trang qua 5 lan trong 10 giay, chan
      tuong tac den khi het dem nguoc. Gio hang van duoc giu nguyen. -->
@@ -348,6 +366,25 @@ button:disabled{opacity:.6;cursor:not-allowed;transform:none!important;box-shado
     <p class="muted" style="margin-top:6px">Vui lòng chờ một chút rồi thử lại. Giỏ hàng của bạn vẫn được giữ nguyên.</p>
     <div class="rb-count" id="refresh-block-count">10</div>
     <p class="muted">giây nữa...</p>
+  </div>
+</div>
+
+<!-- Captcha kho: hien khi may chu chan spam (dat don qua nhanh, tai lai
+     trang qua nhanh). Phai nhap dung CA ma ky tu meo trong hinh VA dap an
+     phep tinh thi moi duoc tiep tuc. Nguoi dung binh thuong khong thay. -->
+<div id="captcha-modal" class="hidden">
+  <div id="captcha-card">
+    <h2>🤖 Xác minh bạn là người thật</h2>
+    <p class="muted">Hệ thống phát hiện thao tác quá nhanh. Vui lòng giải mã bên dưới để tiếp tục — nhập đúng cả mã ký tự và đáp án phép tính.</p>
+    <img id="captcha-img" alt="Mã xác minh">
+    <div style="text-align:center"><button class="btn small secondary" onclick="refreshCaptcha()">🔄 Đổi câu khác</button></div>
+    <label>Mã ký tự trong hình (5 ký tự)</label>
+    <input id="captcha-code" placeholder="VD: K7M2P" maxlength="5" autocomplete="off">
+    <label>Đáp án phép tính trong hình</label>
+    <input id="captcha-math" placeholder="VD: 33" inputmode="numeric" autocomplete="off">
+    <div id="msg-captcha"></div>
+    <br><button class="btn btn-block btn-cta" onclick="submitCaptcha()">✅ Xác nhận</button>
+    <br><button class="btn secondary" style="width:100%" onclick="closeCaptcha()">Đóng</button>
   </div>
 </div>
 
@@ -370,6 +407,10 @@ let pageLoadedAt = Date.now(); // moc thoi gian mo trang (chong bot dat don sieu
 let placingOrder = false; // khoa nut dat don khi dang gui -> chong bam 2 lan
 let authBusy = false; // khoa nut dang ky / dang nhap khi dang gui
 let orderToken = ""; // ma phien dat hang lay tu GET /api/menu (han 10 phut, 1 don)
+let captchaBypass = ""; // bypass token 10 phut sau khi qua captcha (luu tren may nay)
+try { captchaBypass = localStorage.getItem("bms_captcha_pass") || ""; } catch(e){}
+let captchaId = ""; // ma cua thu thach captcha dang hien
+let captchaWaiter = null; // ham resolve cua promise doi xac minh xong
 // Ma huy don cua khach vang lai: luu tren trinh duyet nay theo ma don.
 function getCancelToken(id){ return localStorage.getItem("bms_cancel_" + id) || ""; }
 function saveCancelToken(id, token){ if(token) localStorage.setItem("bms_cancel_" + id, token); }
@@ -583,10 +624,10 @@ function renderCart(){
   document.getElementById("cart-count").textContent = count;
   document.getElementById("cart-total").textContent = fmt(total);
   document.getElementById("cartbar-total").textContent = fmt(total);
-  // Nhay nhe thanh gio khi so luong thay doi (phan hoi truc quan).
+  // Nhay nhe nut gio khi so luong thay doi (phan hoi truc quan).
   if(count > 0){
-    const bar = document.getElementById("cartbar");
-    if(bar){ bar.classList.remove("cart-bump"); void bar.offsetWidth; bar.classList.add("cart-bump"); }
+    const btn = document.getElementById("cart-open-btn");
+    if(btn){ btn.classList.remove("bump"); void btn.offsetWidth; btn.classList.add("bump"); }
   }
   const el = document.getElementById("cart-list");
   const ids = Object.keys(cart);
@@ -596,6 +637,61 @@ function renderCart(){
     return '<div class="item"><div><div class="name">'+esc(m.name)+'</div><div class="price">'+fmt(m.price)+' × '+cart[id]+' = '+fmt(m.price*cart[id])+'</div></div>'
       + '<div class="qty"><button onclick="changeQty('+m.id+',-1)">−</button><span>'+cart[id]+'</span><button onclick="changeQty('+m.id+',1)">+</button></div></div>';
   }).join("");
+}
+// --- Captcha kho: modal mo khi may chu tra 429 code captcha_required.
+// Qua xac minh thi luu bypass token 10 phut va tu chay tiep viec dang do
+// (gui lai don / tai lai thuc don). Nguoi dung binh thuong khong bao gio thay.
+function openCaptcha(){
+  document.getElementById("captcha-modal").classList.remove("hidden");
+  loadCaptcha();
+  return new Promise(res=>{ captchaWaiter = res; });
+}
+function closeCaptcha(){
+  document.getElementById("captcha-modal").classList.add("hidden");
+  if(captchaWaiter){ const w = captchaWaiter; captchaWaiter = null; w(false); }
+}
+function _finishCaptcha(passed){
+  document.getElementById("captcha-modal").classList.add("hidden");
+  if(captchaWaiter){ const w = captchaWaiter; captchaWaiter = null; w(passed); }
+}
+async function loadCaptcha(){
+  msg("msg-captcha", "");
+  const codeEl = document.getElementById("captcha-code");
+  const mathEl = document.getElementById("captcha-math");
+  if(codeEl) codeEl.value = "";
+  if(mathEl) mathEl.value = "";
+  const r = await api("/api/captcha");
+  if(r.ok){
+    captchaId = r.captcha_id;
+    document.getElementById("captcha-img").src = r.svg;
+  } else {
+    msg("msg-captcha", r.error || "Không tải được mã xác minh, vui lòng thử lại.");
+  }
+}
+function refreshCaptcha(){ loadCaptcha(); }
+async function submitCaptcha(){
+  const code = document.getElementById("captcha-code").value.trim();
+  const ans = document.getElementById("captcha-math").value.trim();
+  if(!code || !ans){ msg("msg-captcha", "Vui lòng nhập cả mã ký tự và đáp án phép tính."); return; }
+  const r = await api("/api/captcha/verify", {method:"POST", body:{captcha_id: captchaId, code, answer: ans}});
+  if(!r.ok){
+    msg("msg-captcha", r.error || "Bạn nhập chưa đúng, vui lòng thử lại.");
+    // Ma het han / sai qua 5 lan: tu lay ma moi de nguoi dung lam tiep.
+    if(r.code === "captcha_expired" || r.code === "captcha_locked") loadCaptcha();
+    return;
+  }
+  captchaBypass = r.bypass_token || "";
+  try{ localStorage.setItem("bms_captcha_pass", captchaBypass); }catch(e){}
+  _finishCaptcha(true);
+}
+// Gui 1 don: neu ma phien het han thi lay ma moi roi gui lai 1 lan.
+async function submitOrderOnce(body){
+  let r = await api("/api/order", {method:"POST", body});
+  if(!r.ok && r.code === "order_token_expired"){
+    const m = await api("/api/menu");
+    if(m.ok){ MENU = m.menu; orderToken = m.order_token || ""; body.order_token = orderToken; r = await api("/api/order", {method:"POST", body}); }
+  }
+  return r;
 }
 async function placeOrder(){
   if(placingOrder) return; // chong bam 2 lan / double-tap tao 2 don
@@ -608,16 +704,25 @@ async function placeOrder(){
   if(btn){ btn.disabled = true; btn.textContent = "⏳ Đang gửi đơn…"; }
   try{
     const body = {items, note:document.getElementById("co-note").value, name, method:document.getElementById("co-method").value, time:document.getElementById("co-time").value, website:document.getElementById("co-website").value, form_time_ms: Date.now() - pageLoadedAt, order_token: orderToken};
-    let r = await api("/api/order", {method:"POST", body});
-    // Ma phien het han / khong hop le: lay ma moi tu /api/menu roi gui lai 1 lan.
-    if(!r.ok && r.code === "order_token_expired"){
-      const m = await api("/api/menu");
-      if(m.ok){ MENU = m.menu; orderToken = m.order_token || ""; body.order_token = orderToken; r = await api("/api/order", {method:"POST", body}); }
+    if(captchaBypass) body.captcha_pass = captchaBypass;
+    let r = await submitOrderOnce(body);
+    // Bi chan spam -> mo captcha kho; qua thi gui lai don 1 lan kem bypass token.
+    if(!r.ok && r.code === "captcha_required"){
+      const passed = await openCaptcha();
+      if(passed){
+        if(captchaBypass) body.captcha_pass = captchaBypass;
+        r = await submitOrderOnce(body);
+      } else {
+        msg("msg-order", "Bạn chưa qua xác minh nên đơn chưa được gửi.");
+        return;
+      }
     }
     if(!r.ok){ msg("msg-order", r.error||"Đặt hàng thất bại."); return; }
     lastOrderText = r.order_text;
     lastOrderId = r.order_id;
     if(r.cancel_token) saveCancelToken(r.order_id, r.cancel_token);
+    closeCart(); // dong sidebar, hien the thanh cong o trang chinh
+    showSection("sec-menu");
     document.getElementById("success-text").textContent = r.order_text;
     document.getElementById("success-card").classList.remove("hidden");
     document.getElementById("success-card").scrollIntoView({behavior:"smooth", block:"start"});
@@ -935,6 +1040,19 @@ function showRefreshBlock(seconds){
     }, 1000);
   });
 }
+// Gio hang dang sidebar truot ra tu phai: mo/ dong, bam lop mo hoac phim
+// Escape deu dong. Khi mo thi khoa cuon trang chinh de tap trung vao gio.
+function openCart(){
+  document.getElementById("cart-drawer").classList.add("open");
+  document.getElementById("cart-overlay").classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+function closeCart(){
+  document.getElementById("cart-drawer").classList.remove("open");
+  document.getElementById("cart-overlay").classList.add("hidden");
+  document.body.style.overflow = "";
+}
+document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeCart(); });
 // Chan refresh / dong trang vo tinh khi gio hang dang co mon hoac don dang gui:
 // trinh duyet se hien hop thoai xac nhan truoc khi tai lai trang.
 // (Gio hang da luu trong localStorage nen du co tai lai thi mon van con,
@@ -946,6 +1064,17 @@ window.addEventListener("beforeunload", (e)=>{
     e.returnValue = "";
   }
 });
+// Tai thuc don (kem ma phien dat hang). Neu may chu chan spam refresh
+// (429 captcha_required) thi mo captcha; qua thi tai lai thuc don 1 lan.
+async function fetchMenu(){
+  let r = await api("/api/menu");
+  if(!r.ok && r.code === "captcha_required"){
+    const passed = await openCaptcha();
+    if(passed) r = await api("/api/menu");
+  }
+  if(r.ok){ MENU = r.menu; orderToken = r.order_token || ""; updateCatCounts(); renderMenu(); renderCart(); renderAuth(); return true; }
+  return false;
+}
 (async function init(){
   // Neu vua spam refresh thi chan tuong tac den khi het dem nguoc roi moi
   // tai thuc don (may chu cung gioi han 30 lan tai trang / IP / phut).
@@ -959,9 +1088,8 @@ window.addEventListener("beforeunload", (e)=>{
     + '<div class="sk" style="height:13px;width:90%;margin-top:8px"></div>'
     + '<div class="sk" style="height:18px;width:40%;margin-top:10px"></div></div></div>'
   ).join("");
-  const r = await api("/api/menu");
-  if(r.ok){ MENU = r.menu; orderToken = r.order_token || ""; updateCatCounts(); renderMenu(); renderCart(); renderAuth(); }
-  else document.getElementById("menu-list").innerHTML = "<div class='card'><p class='muted'>Không tải được thực đơn. Hãy kiểm tra máy chủ đang chạy.</p></div>";
+  const okMenu = await fetchMenu();
+  if(!okMenu) document.getElementById("menu-list").innerHTML = "<div class='card'><p class='muted'>Không tải được thực đơn. Hãy kiểm tra máy chủ đang chạy.</p></div>";
 })();
 </script>
 </body>
