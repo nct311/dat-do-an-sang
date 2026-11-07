@@ -190,8 +190,19 @@ button:disabled{opacity:.6;cursor:not-allowed;transform:none!important;box-shado
 #captcha-modal{position:fixed;inset:0;z-index:95;background:rgba(30,25,15,.65);display:flex;align-items:center;justify-content:center;padding:20px}
 #captcha-card{background:#fff;border-radius:20px;padding:26px 24px;max-width:440px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.4)}
 #captcha-card h2{margin:0 0 6px;font-size:21px}
-#captcha-img{display:block;width:100%;max-width:300px;margin:14px auto 4px;border:2px solid var(--line);border-radius:14px;background:#FFFDF8}
-#captcha-card input#captcha-code{text-transform:uppercase}
+/* ===== Captcha keo (drag slider puzzle): modal xac minh khi bi chan spam ===== */
+#captcha-modal{position:fixed;inset:0;z-index:95;background:rgba(30,25,15,.65);display:flex;align-items:center;justify-content:center;padding:20px}
+#captcha-card{background:#fff;border-radius:20px;padding:26px 24px;max-width:440px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+#captcha-card h2{margin:0 0 6px;font-size:21px}
+#captcha-puzzle{position:relative;width:300px;height:150px;margin:14px auto 10px;border:2px solid var(--line);border-radius:14px;overflow:hidden;background:#FFFDF8}
+#captcha-bg{display:block;width:300px;height:150px}
+#captcha-piece{position:absolute;left:0;top:52px;width:55px;height:46px;filter:drop-shadow(0 3px 5px rgba(0,0,0,.45));pointer-events:none;will-change:left}
+#captcha-track{position:relative;width:300px;height:46px;margin:0 auto 8px;background:#EFE7D8;border-radius:23px;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none}
+#captcha-track-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8A7B5F;font-weight:700;font-size:14px;pointer-events:none}
+#captcha-handle{position:absolute;left:0;top:0;width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#2D6A4F,#1B4332);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:grab;box-shadow:0 2px 8px rgba(0,0,0,.35);touch-action:none;will-change:left}
+#captcha-handle.dragging{cursor:grabbing}
+@keyframes captcha-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+#captcha-card.shake{animation:captcha-shake .4s}
 @media(max-width:640px){
   header h1{font-size:27px}
   header::before{font-size:32px}
@@ -369,21 +380,23 @@ button:disabled{opacity:.6;cursor:not-allowed;transform:none!important;box-shado
   </div>
 </div>
 
-<!-- Captcha kho: hien khi may chu chan spam (dat don qua nhanh, tai lai
-     trang qua nhanh). Phai nhap dung CA ma ky tu meo trong hinh VA dap an
-     phep tinh thi moi duoc tiep tuc. Nguoi dung binh thuong khong thay. -->
+<!-- Captcha keo (drag slider puzzle): hien khi may chu chan spam (dat
+     don qua nhanh, tai lai trang qua nhanh). Keo manh ghep vao dung cho
+     trong tren hinh thi moi duoc tiep tuc. Nguoi dung binh thuong khong thay. -->
 <div id="captcha-modal" class="hidden">
   <div id="captcha-card">
     <h2>🤖 Xác minh bạn là người thật</h2>
-    <p class="muted">Hệ thống phát hiện thao tác quá nhanh. Vui lòng giải mã bên dưới để tiếp tục — nhập đúng cả mã ký tự và đáp án phép tính.</p>
-    <img id="captcha-img" alt="Mã xác minh">
+    <p class="muted">Hệ thống phát hiện thao tác quá nhanh. Kéo mảnh ghép vào đúng chỗ trống trên hình để tiếp tục.</p>
+    <div id="captcha-puzzle">
+      <img id="captcha-bg" alt="Hình ghép">
+      <img id="captcha-piece" alt="Mảnh ghép">
+    </div>
+    <div id="captcha-track">
+      <div id="captcha-track-label">Kéo để ghép hình →</div>
+      <div id="captcha-handle">➤</div>
+    </div>
     <div style="text-align:center"><button class="btn small secondary" onclick="refreshCaptcha()">🔄 Đổi câu khác</button></div>
-    <label>Mã ký tự trong hình (5 ký tự)</label>
-    <input id="captcha-code" placeholder="VD: K7M2P" maxlength="5" autocomplete="off">
-    <label>Đáp án phép tính trong hình</label>
-    <input id="captcha-math" placeholder="VD: 33" inputmode="numeric" autocomplete="off">
     <div id="msg-captcha"></div>
-    <br><button class="btn btn-block btn-cta" onclick="submitCaptcha()">✅ Xác nhận</button>
     <br><button class="btn secondary" style="width:100%" onclick="closeCaptcha()">Đóng</button>
   </div>
 </div>
@@ -638,7 +651,7 @@ function renderCart(){
       + '<div class="qty"><button onclick="changeQty('+m.id+',-1)">−</button><span>'+cart[id]+'</span><button onclick="changeQty('+m.id+',1)">+</button></div></div>';
   }).join("");
 }
-// --- Captcha kho: modal mo khi may chu tra 429 code captcha_required.
+// --- Captcha keo: modal mo khi may chu tra 429 code captcha_required.
 // Qua xac minh thi luu bypass token 10 phut va tu chay tiep viec dang do
 // (gui lai don / tai lai thuc don). Nguoi dung binh thuong khong bao gio thay.
 function openCaptcha(){
@@ -654,36 +667,81 @@ function _finishCaptcha(passed){
   document.getElementById("captcha-modal").classList.add("hidden");
   if(captchaWaiter){ const w = captchaWaiter; captchaWaiter = null; w(passed); }
 }
+let captchaDrag = null; // {pointerId, startX, startOff} khi dang keo nut truot
+const CAPTCHA_TRACK_W = 300; // be rong vung puzzle / thanh truot (px)
+const CAPTCHA_HANDLE_W = 46; // be rong nut keo (px)
+function captchaMaxOff(){ return CAPTCHA_TRACK_W - CAPTCHA_HANDLE_W; } // 254
+function captchaSetOff(off){
+  off = Math.max(0, Math.min(captchaMaxOff(), Math.round(off)));
+  document.getElementById("captcha-handle").style.left = off + "px";
+  document.getElementById("captcha-piece").style.left = off + "px";
+  return off;
+}
 async function loadCaptcha(){
   msg("msg-captcha", "");
-  const codeEl = document.getElementById("captcha-code");
-  const mathEl = document.getElementById("captcha-math");
-  if(codeEl) codeEl.value = "";
-  if(mathEl) mathEl.value = "";
+  captchaSetOff(0);
   const r = await api("/api/captcha");
   if(r.ok){
     captchaId = r.captcha_id;
-    document.getElementById("captcha-img").src = r.svg;
+    document.getElementById("captcha-bg").src = r.bg_svg;
+    const piece = document.getElementById("captcha-piece");
+    piece.src = r.piece_svg;
+    if(r.piece_y != null) piece.style.top = r.piece_y + "px";
+    if(r.piece_w) piece.style.width = r.piece_w + "px";
+    if(r.piece_h) piece.style.height = r.piece_h + "px";
   } else {
     msg("msg-captcha", r.error || "Không tải được mã xác minh, vui lòng thử lại.");
   }
 }
 function refreshCaptcha(){ loadCaptcha(); }
-async function submitCaptcha(){
-  const code = document.getElementById("captcha-code").value.trim();
-  const ans = document.getElementById("captcha-math").value.trim();
-  if(!code || !ans){ msg("msg-captcha", "Vui lòng nhập cả mã ký tự và đáp án phép tính."); return; }
-  const r = await api("/api/captcha/verify", {method:"POST", body:{captcha_id: captchaId, code, answer: ans}});
+function captchaShake(){
+  const card = document.getElementById("captcha-card");
+  card.classList.remove("shake"); void card.offsetWidth; card.classList.add("shake");
+}
+async function submitCaptcha(offset){
+  const r = await api("/api/captcha/verify", {method:"POST", body:{captcha_id: captchaId, offset: Math.round(offset)}});
   if(!r.ok){
-    msg("msg-captcha", r.error || "Bạn nhập chưa đúng, vui lòng thử lại.");
+    captchaShake();
+    msg("msg-captcha", r.error || "Bạn kéo chưa đúng vị trí, vui lòng thử lại.");
     // Ma het han / sai qua 5 lan: tu lay ma moi de nguoi dung lam tiep.
     if(r.code === "captcha_expired" || r.code === "captcha_locked") loadCaptcha();
+    else captchaSetOff(0); // keo sai: dua manh ghep ve dau de keo lai
     return;
   }
   captchaBypass = r.bypass_token || "";
   try{ localStorage.setItem("bms_captcha_pass", captchaBypass); }catch(e){}
   _finishCaptcha(true);
 }
+// Keo thanh truot (chuot + cam ung): nut keo va manh ghep di chuyen cung
+// nhau theo chieu ngang. Tha tay thi gui vi tri len may chu xac minh.
+function captchaDragStart(e){
+  e.preventDefault();
+  const handle = document.getElementById("captcha-handle");
+  handle.classList.add("dragging");
+  const left = parseInt(handle.style.left || "0", 10) || 0;
+  captchaDrag = {pointerId: e.pointerId, startX: e.clientX, startOff: left};
+  window.addEventListener("pointermove", captchaDragMove);
+  window.addEventListener("pointerup", captchaDragEnd);
+  window.addEventListener("pointercancel", captchaDragEnd);
+}
+function captchaDragMove(e){
+  if(!captchaDrag || e.pointerId !== captchaDrag.pointerId) return;
+  e.preventDefault();
+  captchaSetOff(captchaDrag.startOff + (e.clientX - captchaDrag.startX));
+}
+function captchaDragEnd(e){
+  if(!captchaDrag) return;
+  if(e.pointerId !== undefined && e.pointerId !== captchaDrag.pointerId) return;
+  const off = parseInt(document.getElementById("captcha-handle").style.left || "0", 10) || 0;
+  captchaDrag = null;
+  document.getElementById("captcha-handle").classList.remove("dragging");
+  window.removeEventListener("pointermove", captchaDragMove);
+  window.removeEventListener("pointerup", captchaDragEnd);
+  window.removeEventListener("pointercancel", captchaDragEnd);
+  if(off > 5) submitCaptcha(off); // keo qua it thi coi nhu chua keo, khong gui
+  else captchaSetOff(0);
+}
+document.getElementById("captcha-handle").addEventListener("pointerdown", captchaDragStart);
 // Gui 1 don: neu ma phien het han thi lay ma moi roi gui lai 1 lan.
 async function submitOrderOnce(body){
   let r = await api("/api/order", {method:"POST", body});

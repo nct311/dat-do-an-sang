@@ -169,99 +169,115 @@ def clear_login_failures(phone):
         _login_locks.pop(phone, None)
 
 
-# --- Captcha kho (tu xay, khong dich vu ngoai, khong API key) ---
-# Thu thach gom 2 phan, phai dung CA HAI moi qua:
-#   1. Ma 5 ky tu ngau nhien (chi dung ky tu khong gay nham — bo 0/O, 1/l/I).
-#   2. Phep tinh 2 phep toan: (a + b) × c voi a,b 2-9, c 2-3.
-# Moi captcha_id chi cho sai toi da 5 lan, han dung 3 phut. Qua duoc thi
-# nhan bypass token 10 phut (gan voi IP): trong 10 phut do IP duoc mien
-# khoi cac gioi han spam (rate limit dat don, cooldown 3 giay, gioi han
-# tai trang/thuc don) — nhung van phai co order_token, honeypot, min-time
-# va gioi han so luong nhu binh thuong.
+# --- Captcha keo (drag slider puzzle, tu xay, khong dich vu ngoai) ---
+# Thu thach: nen 300x150 co 1 cho trong hinh manh ghep o vi tri x ngau
+# nhien; nguoi dung keo manh ghep (cung hinh, cung hoa van) vao dung cho
+# trong do. Sai so cho phep ±6px. Moi captcha_id chi cho sai toi da 5 lan,
+# han dung 3 phut. Qua duoc thi nhan bypass token 10 phut (gan voi IP):
+# trong 10 phut do IP duoc mien khoi cac gioi han spam (rate limit dat
+# don, cooldown 3 giay, gioi han tai trang/thuc don) — nhung van phai co
+# order_token, honeypot, min-time va gioi han so luong nhu binh thuong.
+# Vi tri dung (x cua cho trong) CHI luu o may chu, khong bao gio tra ve
+# cho trinh duyet.
 CAPTCHA_TTL_S = 180        # 3 phut
 CAPTCHA_MAX_FAILS = 5
 CAPTCHA_BYPASS_TTL_S = 600  # 10 phut
-CAPTCHA_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-_captchas = {}       # captcha_id -> {"code", "math", "ip", "exp", "fails"}
+CAPTCHA_BG_W, CAPTCHA_BG_H = 300, 150   # kich thuoc nen puzzle (px)
+CAPTCHA_PIECE_W, CAPTCHA_PIECE_H = 55, 46  # manh ghep (gom ca tab loi ra)
+CAPTCHA_GAP_Y = 52          # vi tri doc cua cho trong / manh ghep (px)
+CAPTCHA_GAP_MIN_X, CAPTCHA_GAP_MAX_X = 40, 220  # cho trong nam trong khoang nay
+CAPTCHA_TOLERANCE_PX = 6    # sai so cho phep khi keo (px)
+_captchas = {}       # captcha_id -> {"x", "ip", "exp", "fails"}
 _captcha_bypass = {}  # bypass_token -> (ip, het han monotonic)
 _captcha_lock = Lock()
 
 
-def _captcha_svg(code, math_text):
-    """Ve anh SVG cua thu thach bang string building (stdlib only).
-    Moi ky tu xoay -35..35 do, lech doc theo duong song, co chu khac nhau,
-    hoi chong len nhau, mau dam nhat khac nhau; them 4-6 duong nhieu cat
-    ngang chu va ~85 cham nhieu. Thu tu cac the <text> trong DOM duoc xao
-    tron (vi tri hien thi khong doi) de bot doc text truc tiep tu SVG cung
-    doc sai. Chu to, tuong phan cao voi nen nen nguoi that van doc duoc."""
-    rng = random.Random(secrets.token_bytes(16))
-    W, H = 300, 122
-    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">',
-             f'<rect width="{W}" height="{H}" fill="#FFFDF8"/>']
-    # Cham nhieu nen (duoi chu).
-    for _ in range(55):
-        x, y = rng.randint(0, W), rng.randint(0, H)
-        col = rng.choice(["#C9BFA5", "#D8CFB8", "#B7A98A", "#E0D6BE"])
-        parts.append(f'<circle cx="{x}" cy="{y}" r="{rng.choice([1, 1, 1.5, 2])}" fill="{col}"/>')
-    code_colors = ["#1B4332", "#7C2D12", "#1E3A5F", "#4A2C0A", "#5B21B6"]
-    phase = rng.uniform(0, 6.28)
-    elems = []
-    x = 16
-    for i, ch in enumerate(code):
-        size = rng.randint(32, 42)
-        rot = rng.randint(-35, 35)
-        y = 54 + int(9 * math.sin(i * 1.1 + phase)) + rng.randint(-3, 3)
-        col = code_colors[i % len(code_colors)]
-        elems.append(f'<text x="{x}" y="{y}" font-family="monospace,sans-serif" font-size="{size}" font-weight="900" fill="{col}" transform="rotate({rot} {x} {y})">{xml_escape(ch)}</text>')
-        x += int(size * 0.82) + rng.randint(-4, 4)  # hoi chong len nhau
-    # Dong phep tinh: moi ky tu 1 the <text> rieng, xoay nhe.
-    mx = 22
-    my = 98
-    for ch in math_text:
-        size = rng.randint(19, 24)
-        rot = rng.randint(-8, 8)
-        elems.append(f'<text x="{mx}" y="{my}" font-family="monospace,sans-serif" font-size="{size}" font-weight="800" fill="#2B2118" transform="rotate({rot} {mx} {my})">{xml_escape(ch)}</text>')
-        mx += int(size * 0.62) + rng.randint(-1, 3)
-    rng.shuffle(elems)  # xao thu tu DOM, vi tri hien thi giu nguyen
-    parts.extend(elems)
-    # 4-6 duong nhieu cat ngang chu.
-    for _ in range(rng.randint(4, 6)):
-        x1, y1 = rng.randint(0, 60), rng.randint(5, H - 5)
-        x2, y2 = rng.randint(W - 60, W), rng.randint(5, H - 5)
-        col = rng.choice(["#8B5E34", "#2D6A4F", "#7A6A58", "#B4552D"])
-        parts.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{col}" stroke-width="{rng.choice([1, 1.5, 2])}" opacity="0.55"/>')
-    # Cham nhieu tren chu.
-    for _ in range(28):
-        x, y = rng.randint(0, W), rng.randint(0, H)
-        parts.append(f'<circle cx="{x}" cy="{y}" r="1" fill="#8A7B5F" opacity="0.7"/>')
-    parts.append("</svg>")
+def _piece_path(x, y):
+    """Duong vien hinh manh ghep (vuong bo tron 46x46 + 1 tab loi ra ben
+    phai) dat o goc trai-tren (x, y). Dung chung cho ca cho trong tren nen
+    va hinh manh ghep de hai hinh khop nhau hoan toan."""
+    return (
+        f"M {x + 6} {y} H {x + 40} A 6 6 0 0 1 {x + 46} {y + 6} V {y + 14} "
+        f"A 9 9 0 0 1 {x + 46} {y + 32} V {y + 40} A 6 6 0 0 1 {x + 40} {y + 46} "
+        f"H {x + 6} A 6 6 0 0 1 {x} {y + 40} V {y + 6} A 6 6 0 0 1 {x + 6} {y} Z"
+    )
+
+
+def _captcha_pattern(rng):
+    """Hoa van nen ngau nhien: 1 gradient + hinh tron/chu nhat/cham nhieu
+    nhieu mau. Tra ve (gradient_svg, [shape, ...]) de nen va manh ghep
+    dung chung 1 bo hoa van (manh ghep la dung lat cat cua nen)."""
+    g1, g2 = rng.choice([("#FFE8A3", "#F4A261"), ("#B7E4C7", "#2D6A4F"),
+                         ("#FFD6A5", "#E76F51"), ("#CAF0F8", "#40916C")])
+    grad = (f'<defs><linearGradient id="cg" gradientUnits="userSpaceOnUse" '
+            f'x1="0" y1="0" x2="{CAPTCHA_BG_W}" y2="{CAPTCHA_BG_H}">'
+            f'<stop offset="0" stop-color="{g1}"/>'
+            f'<stop offset="1" stop-color="{g2}"/></linearGradient></defs>')
+    palette = ["#2D6A4F", "#40916C", "#E9C46A", "#F4A261", "#E76F51",
+               "#1B4332", "#F4D58D", "#BC6C25", "#52B788", "#DDA15E"]
+    shapes = []
+    for _ in range(14):
+        shapes.append(f'<circle cx="{rng.randint(0, CAPTCHA_BG_W)}" cy="{rng.randint(0, CAPTCHA_BG_H)}" r="{rng.randint(8, 26)}" fill="{rng.choice(palette)}" opacity="0.85"/>')
+    for _ in range(10):
+        shapes.append(f'<rect x="{rng.randint(0, 280)}" y="{rng.randint(0, 130)}" width="{rng.randint(10, 30)}" height="{rng.randint(8, 20)}" rx="4" fill="{rng.choice(palette)}" opacity="0.8"/>')
+    for _ in range(30):
+        shapes.append(f'<circle cx="{rng.randint(0, CAPTCHA_BG_W)}" cy="{rng.randint(0, CAPTCHA_BG_H)}" r="{rng.choice([1, 1.5, 2])}" fill="#FFFDF8" opacity="0.7"/>')
+    return grad, shapes
+
+
+def _captcha_bg_svg(gap_x, grad, shapes):
+    """Nen 300x150: gradient + hoa van, voi cho trong hinh manh ghep o
+    (gap_x, GAP_Y) to mau + vien trang de nhin ro."""
+    gap = _piece_path(gap_x, CAPTCHA_GAP_Y)
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{CAPTCHA_BG_W}" height="{CAPTCHA_BG_H}" viewBox="0 0 {CAPTCHA_BG_W} {CAPTCHA_BG_H}">',
+             grad,
+             f'<rect width="{CAPTCHA_BG_W}" height="{CAPTCHA_BG_H}" fill="url(#cg)"/>',
+             *shapes,
+             f'<path d="{gap}" fill="rgba(20,16,8,0.55)" stroke="#FFFFFF" stroke-width="2"/>',
+             "</svg>"]
+    return "".join(parts)
+
+
+def _captcha_piece_svg(gap_x, grad, shapes):
+    """Manh ghep 55x46: lat cat dung vi tri cho trong cua nen (cung hoa
+    van, dich chuyen -gap_x/-GAP_Y) roi cat theo duong vien manh ghep."""
+    clip = _piece_path(0, 0)
+    inner = "".join([f'<rect width="{CAPTCHA_BG_W}" height="{CAPTCHA_BG_H}" fill="url(#cg)"/>',
+                     *shapes])
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{CAPTCHA_PIECE_W}" height="{CAPTCHA_PIECE_H}" viewBox="0 0 {CAPTCHA_PIECE_W} {CAPTCHA_PIECE_H}">',
+             grad,
+             f'<defs><clipPath id="cp"><path d="{clip}"/></clipPath></defs>',
+             f'<g clip-path="url(#cp)"><g transform="translate({-gap_x},{-CAPTCHA_GAP_Y})">{inner}</g></g>',
+             f'<path d="{clip}" fill="none" stroke="#FFFFFF" stroke-width="2"/>',
+             "</svg>"]
     return "".join(parts)
 
 
 def make_captcha():
-    """Tao 1 thu thach moi: (ma 5 ky tu, dap an phep tinh, anh SVG)."""
+    """Tao 1 thu thach moi: (vi tri x cua cho trong, anh nen SVG, anh manh
+    ghep SVG). Vi tri dung CHI luu o may chu, khong co trong anh tra ve."""
     rng = random.Random(secrets.token_bytes(16))
-    code = "".join(rng.choice(CAPTCHA_CODE_CHARS) for _ in range(5))
-    a, b = rng.randint(2, 9), rng.randint(2, 9)
-    c = rng.randint(2, 3)
-    math_answer = (a + b) * c
-    math_text = f"({a} + {b}) × {c} = ?"
-    return code, math_answer, _captcha_svg(code, math_text)
+    gap_x = rng.randint(CAPTCHA_GAP_MIN_X, CAPTCHA_GAP_MAX_X)
+    grad, shapes = _captcha_pattern(rng)
+    return gap_x, _captcha_bg_svg(gap_x, grad, shapes), _captcha_piece_svg(gap_x, grad, shapes)
 
 
 def issue_captcha(ip):
-    """Cap ma captcha moi cho IP nay; dong thoi don dep ma het han."""
+    """Cap ma captcha moi cho IP nay; dong thoi don dep ma het han.
+    Tra ve (captcha_id, anh_nen_data_uri, anh_manh_ghep_data_uri)."""
     now = time.monotonic()
-    code, math_answer, svg = make_captcha()
+    gap_x, bg_svg, piece_svg = make_captcha()
     cid = secrets.token_hex(16)
     with _captcha_lock:
         for k, v in list(_captchas.items()):
             if v["exp"] <= now:
                 del _captchas[k]
-        _captchas[cid] = {"code": code, "math": math_answer, "ip": ip,
+        _captchas[cid] = {"x": gap_x, "ip": ip,
                           "exp": now + CAPTCHA_TTL_S, "fails": 0}
     print(f"CAPTCHA [{now_vn().strftime('%H:%M:%S')}] IP={ip} — cap ma {cid[:8]}...")
-    return cid, "data:image/svg+xml;charset=utf-8," + quote(svg, safe="")
+    return (cid,
+            "data:image/svg+xml;charset=utf-8," + quote(bg_svg, safe=""),
+            "data:image/svg+xml;charset=utf-8," + quote(piece_svg, safe=""))
 
 
 def _cleanup_captcha_bypass(now):
@@ -270,10 +286,10 @@ def _cleanup_captcha_bypass(now):
             del _captcha_bypass[tok]
 
 
-def verify_captcha(cid, code, answer, ip):
-    """Kiem tra dap an. Tra ve (http_code, code_loi, thong_bao, bypass_token).
-    Ca ma ky tu (khong phan biet hoa/thuong) va dap an phep tinh deu phai
-    dung. Sai qua 5 lan thi huy ma, phai lay ma moi."""
+def verify_captcha(cid, offset, ip):
+    """Kiem tra vi tri keo. Tra ve (http_code, code_loi, thong_bao, bypass_token).
+    Dung khi |offset - x_cho_trong| <= 6px. Sai qua 5 lan thi huy ma, phai
+    lay ma moi."""
     now = time.monotonic()
     with _captcha_lock:
         rec = _captchas.get(cid)
@@ -289,21 +305,20 @@ def verify_captcha(cid, code, answer, ip):
             del _captchas[cid]
             print(f"CAPTCHA [{now_vn().strftime('%H:%M:%S')}] IP={ip} — sai qua 5 lan, huy ma {cid[:8]}...")
             return (400, "captcha_locked",
-                    "Bạn đã nhập sai quá 5 lần, vui lòng bấm Đổi câu khác lấy mã mới.", None)
-        ok_code = (str(code or "").strip().upper() == rec["code"])
+                    "Bạn đã kéo sai quá 5 lần, vui lòng bấm Đổi câu khác lấy mã mới.", None)
         try:
-            ok_math = int(str(answer).strip()) == rec["math"]
+            off = float(offset)
         except Exception:
-            ok_math = False
-        if not (ok_code and ok_math):
+            off = None
+        if off is None or abs(off - rec["x"]) > CAPTCHA_TOLERANCE_PX:
             rec["fails"] += 1
             left = CAPTCHA_MAX_FAILS - rec["fails"]
-            print(f"CAPTCHA [{now_vn().strftime('%H:%M:%S')}] IP={ip} — tra loi sai (con {left} lan)")
+            print(f"CAPTCHA [{now_vn().strftime('%H:%M:%S')}] IP={ip} — keo sai vi tri (con {left} lan)")
             if left > 0:
                 return (400, "captcha_wrong",
-                        f"Bạn nhập chưa đúng, còn {left} lần thử.", None)
+                        f"Bạn kéo chưa đúng vị trí, còn {left} lần thử.", None)
             return (400, "captcha_wrong",
-                    "Bạn nhập chưa đúng, mã này đã hết lượt thử.", None)
+                    "Bạn kéo chưa đúng vị trí, mã này đã hết lượt thử.", None)
         del _captchas[cid]
         token = secrets.token_hex(16)
         _captcha_bypass[token] = (ip, now + CAPTCHA_BYPASS_TTL_S)
@@ -567,16 +582,19 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, {"ok": True, "menu": MENU, "order_token": issue_order_token(ip)})
             return
         if self.path == "/api/captcha":
-            # Cap thu thach captcha kho (ma 5 ky tu meo + phep tinh 2 phep
-            # toan). Gioi han 30 lan/IP/phut de bot khong lay ma lien tuc.
+            # Cap thu thach captcha keo (nen co cho trong + manh ghep).
+            # Gioi han 30 lan/IP/phut de bot khong lay ma lien tuc.
             if rate_limited(ip, "captcha"):
                 log_block(ip, "lay captcha qua nhanh")
                 self.send_json(429, {"ok": False,
                                      "error": "Bạn lấy mã xác minh quá nhanh, vui lòng chờ một chút rồi thử lại"},
                               extra_headers={"Retry-After": "60"})
                 return
-            cid, svg = issue_captcha(ip)
-            self.send_json(200, {"ok": True, "captcha_id": cid, "svg": svg})
+            cid, bg, piece = issue_captcha(ip)
+            self.send_json(200, {"ok": True, "captcha_id": cid, "bg_svg": bg,
+                                 "piece_svg": piece, "piece_w": CAPTCHA_PIECE_W,
+                                 "piece_h": CAPTCHA_PIECE_H, "piece_y": CAPTCHA_GAP_Y,
+                                 "track_w": CAPTCHA_BG_W})
             return
         if self.path == "/api/orders":
             phone = self.auth_phone()
@@ -916,12 +934,12 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if self.path == "/api/captcha/verify":
-            # Xac minh dap an captcha kho: ca ma ky tu (khong phan biet
-            # hoa/thuong) va dap an phep tinh deu phai dung. Dung thi tra
-            # bypass token 10 phut (gan voi IP); sai qua 5 lan thi huy ma.
+            # Xac minh vi tri keo cua captcha puzzle: manh ghep phai nam
+            # trong ±6px so voi cho trong. Dung thi tra bypass token 10
+            # phut (gan voi IP); sai qua 5 lan thi huy ma.
             cid = str(data.get("captcha_id") or "")
             http_code, err_code, msg_text, token = verify_captcha(
-                cid, data.get("code"), data.get("answer"), ip)
+                cid, data.get("offset"), ip)
             if http_code != 200:
                 self.send_json(http_code, {"ok": False, "code": err_code, "error": msg_text})
                 return

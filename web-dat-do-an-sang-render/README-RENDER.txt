@@ -126,7 +126,7 @@ CHẶN SPAM REFRESH + BẢO MẬT THÊM (bản cập nhật 07/11/2026):
   Đăng nhập đúng sẽ xóa hết lịch sử sai. Chủ quán đăng nhập đúng như
   bình thường không bị ảnh hưởng.
 
-CAPTCHA KHÓ — NHẢY CAPTCHA KHI SPAM (bản cập nhật 07/11/2026):
+CAPTCHA KÉO (DRAG SLIDER PUZZLE) — NHẢY CAPTCHA KHI SPAM (bản cập nhật 07/11/2026):
 - Khi máy chủ chặn spam (đặt đơn quá 10 lần/phút, 2 đơn cách nhau dưới
   3 giây, tải lại trang/thực đơn quá 30 lần/phút), thay vì chỉ báo lỗi
   429, trang sẽ NHẢY HỘP THOẠI CAPTCHA để khách xác minh mình là người
@@ -134,30 +134,26 @@ CAPTCHA KHÓ — NHẢY CAPTCHA KHI SPAM (bản cập nhật 07/11/2026):
   (không chạm ngưỡng spam) KHÔNG BAO GIỜ thấy captcha. Đăng nhập sai
   nhiều lần vẫn khóa 15 phút như cũ, KHÔNG có captcha ở đăng nhập.
 - Captcha tự xây trong máy chủ, không dùng dịch vụ ngoài, không cần
-  đăng ký API key: mỗi lần hiện là 1 ảnh SVG vẽ bằng code (không cần
-  thư viện ảnh) gồm mã 5 ký tự (chỉ dùng ký tự không gây nhầm — bỏ
-  0/O, 1/l/I) KÈM phép tính 2 phép toán, vd (7 + 4) × 3. Người dùng
-  phải nhập ĐÚNG CẢ HAI: mã ký tự (không phân biệt hoa/thường) và đáp
-  án phép tính — 2 ô nhập trong hộp thoại.
-- Méo hình mạnh nhưng người thật vẫn đọc được: mỗi ký tự xoay ngẫu
-  nhiên -35°..35°, lệch dọc theo đường sóng, cỡ chữ khác nhau từng ký
-  tự, hơi chồng lên nhau, màu đậm nhạt khác nhau, 4-6 đường nhiễu cắt
-  ngang chữ, ~85 chấm nhiễu nền, chữ to tương phản cao với nền. Thứ tự
-  các ký tự trong mã nguồn SVG còn được xáo trộn nên bot đọc text trực
-  tiếp từ ảnh cũng đọc sai thứ tự.
-- Mỗi mã chỉ cho sai tối đa 5 lần (hiển thị số lần còn lại), sai lần
-  thứ 6 thì mã bị hủy, phải bấm "Đổi câu khác" lấy mã mới. Mã chỉ có
-  hạn 3 phút. Qua được thì nhận bypass token 10 phút gắn với IP: trong
-  10 phút đó IP được miễn các giới hạn spam (tốc độ đặt đơn, cooldown
-  3 giây, giới hạn tải trang) nhưng vẫn phải có mã phiên đặt hàng,
-  honeypot, đơn gửi đủ 0.8 giây và giới hạn số lượng như bình thường.
-  Mọi lần cấp mã / đoán sai / qua / bị hủy đều ghi log trên máy chủ.
-- API mới (máy chủ): GET /api/captcha trả {captcha_id, svg} (ảnh SVG
-  dạng data URI, xem được ngay không cần tải thêm); POST /api/captcha/verify
-  với {captcha_id, code, answer} trả 200 + bypass_token khi đúng,
-  400 khi sai/hết hạn (kèm mã lỗi captcha_wrong / captcha_expired /
-  captcha_locked để trang tự đổi mã mới). Đơn POST kèm thêm trường
-  captcha_pass (bypass token) khi có.
+  đăng ký API key: hộp thoại hiện 1 hình nền 300x150 (gradient + hoa
+  văn ngẫu nhiên) có 1 chỗ trống hình mảnh ghép ở vị trí x ngẫu nhiên,
+  và 1 mảnh ghép (đúng lát cắt hoa văn của chỗ trống đó) ở mép trái.
+  Người dùng KÉO NÚT TRƯỢT (chuột hoặc cảm ứng) để đưa mảnh ghép vào
+  đúng chỗ trống; thả tay là gửi vị trí lên máy chủ kiểm tra.
+- Vị trí đúng CHỈ lưu ở máy chủ, không bao giờ trả về trình duyệt; sai
+  số cho phép ±6px. Mỗi mã chỉ cho sai tối đa 5 lần (hiển thị số lần
+  còn lại), sai lần thứ 6 thì mã bị hủy, phải bấm "Đổi câu khác" lấy mã
+  mới. Mã chỉ có hạn 3 phút. Qua được thì nhận bypass token 10 phút
+  gắn với IP: trong 10 phút đó IP được miễn các giới hạn spam (tốc độ
+  đặt đơn, cooldown 3 giây, giới hạn tải trang) nhưng vẫn phải có mã
+  phiên đặt hàng, honeypot, đơn gửi đủ 0.8 giây và giới hạn số lượng
+  như bình thường. Mọi lần cấp mã / kéo sai / qua / bị hủy đều ghi log
+  trên máy chủ.
+- API mới (máy chủ): GET /api/captcha trả {captcha_id, bg_svg, piece_svg,
+  piece_w, piece_h, piece_y, track_w} (2 ảnh SVG dạng data URI, xem được
+  ngay không cần tải thêm); POST /api/captcha/verify với {captcha_id,
+  offset} trả 200 + bypass_token khi đúng, 400 khi sai/hết hạn (kèm mã
+  lỗi captcha_wrong / captcha_expired / captcha_locked để trang tự đổi
+  mã mới). Đơn POST kèm thêm trường captcha_pass (bypass token) khi có.
 
 ## Giao diện mới (07/11/2026) — xanh lá đậm + kem, giỏ hàng sidebar
 - Phong cách mới: nền kem ấm, xanh lá đậm (#1B4332/#2D6A4F) + nâu gỗ, thẻ
