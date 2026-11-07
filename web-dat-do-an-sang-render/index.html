@@ -1138,6 +1138,14 @@ async function fetchMenu(){
   // tai thuc don (may chu cung gioi han 30 lan tai trang / IP / phut).
   const wait = checkRefreshSpam();
   if(wait > 0){ await showRefreshBlock(wait); }
+  // May chu vua chan spam tai trang: trang duoc tra kem co
+  // window.__NEED_CAPTCHA__ (thay vi trang JSON tho nhu truoc). Mo captcha
+  // keo ngay lap tuc; qua xac minh thi xoa dem spam refresh o trinh duyet
+  // de khong bi ket vong lap, roi moi tai thuc don nhu binh thuong.
+  if(window.__NEED_CAPTCHA__){
+    const passed = await openCaptcha();
+    if(passed){ try{ sessionStorage.removeItem("bms_loads"); }catch(e){} }
+  }
   updateNavVisibility(); // an tab chu quan ngay tu dau neu chua dang nhap chu quan
   // Skeleton trong luc doi thuc don tu may chu (cam giac tai nhanh hon).
   document.getElementById("menu-list").innerHTML = [1,2,3,4].map(()=>

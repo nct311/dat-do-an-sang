@@ -169,3 +169,15 @@ CAPTCHA KÉO (DRAG SLIDER PUZZLE) — NHẢY CAPTCHA KHI SPAM (bản cập nhậ
   Đặt đơn thành công thì sidebar tự đóng và hiện thẻ thành công ở trang chính.
 - Đã bỏ thanh giỏ nổi dưới cùng. Cảnh báo beforeunload (giỏ có món / đơn
   đang gửi) và chặn spam refresh vẫn hoạt động như trước.
+
+---
+GHI CHÚ BẢN SỬA 07/11/2026 — Sửa lỗi trang JSON thô khi chặn spam tải trang:
+- Trước đây: tải lại trang quá 30 lần/phút thì máy chủ trả thẳng JSON 429
+  nên trình duyệt hiện nguyên trang JSON, người dùng không thấy captcha.
+- Nay: GET / (và mọi đường dẫn không phải API) KHÔNG BAO GIỜ trả JSON.
+  Khi chạm giới hạn tải trang, máy chủ trả về trang HTML đầy đủ (status
+  429, Content-Type text/html) kèm cờ window.__NEED_CAPTCHA__=true trong
+  <head>; trang vừa tải xong sẽ tự mở ngay hộp thoại captcha kéo, qua
+  xác minh thì xóa bộ đếm spam refresh ở trình duyệt rồi tải thực đơn
+  bình thường. API (/api/menu, /api/order...) vẫn trả JSON 429 như cũ để
+  code cũ xử lý. Đường dẫn lạ không phải API cũng trả về trang HTML.

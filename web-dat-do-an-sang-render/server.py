@@ -555,10 +555,24 @@ class Handler(BaseHTTPRequestHandler):
             # kem code captcha_required de trinh duyet mo hop thoai xac minh
             # thay vi chi bao loi. IP da qua captcha thi duoc mien.
             if not captcha_bypass_active(ip) and rate_limited(ip, "page"):
-                log_block(ip, "tai lai trang qua nhanh -> /")
-                self.send_json(429, {"ok": False, "code": "captcha_required",
-                                     "error": "Bạn tải lại trang quá nhanh, vui lòng xác minh bạn là người thật rồi thử lại"},
-                              extra_headers={"Retry-After": "60"})
+                # TRANG KHONG BAO GIO TRA JSON: neu tra JSON 429 thi trinh
+                # duyet se hien trang JSON tho, nguoi dung khong bao gio
+                # thay duoc captcha. Tra ve trang HTML day du (status 429)
+                # kem co __NEED_CAPTCHA__ de trang tu mo captcha keo ngay
+                # khi tai xong.
+                log_block(ip, "tai lai trang qua nhanh -> / (tra HTML + captcha)")
+                path = os.path.join(BASE_DIR, "index.html")
+                with open(path, "rb") as f:
+                    body = f.read()
+                flag = b"<script>window.__NEED_CAPTCHA__=true;</script>"
+                body = body.replace(b"</head>", flag + b"</head>", 1)
+                self.send_response(429)
+                self._send_security_headers()
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Retry-After", "60")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
                 return
             path = os.path.join(BASE_DIR, "index.html")
             with open(path, "rb") as f:
@@ -609,7 +623,21 @@ class Handler(BaseHTTPRequestHandler):
             visible = [public_order(o) for o in reversed(visible)]  # don moi nhat len dau
             self.send_json(200, {"ok": True, "orders": visible, "is_owner": norm_phone(phone) == OWNER_PHONE})
             return
-        self.send_json(404, {"ok": False, "error": "Không tìm thấy"})
+        # Duong dan la: API thi tra JSON 404 nhu cu; duong dan thuong (nguoi
+        # dung go sai URL tren trinh duyet) thi tra ve trang HTML de khong
+        # bao gio hien trang JSON tho.
+        if self.path.startswith("/api/"):
+            self.send_json(404, {"ok": False, "error": "Không tìm thấy"})
+            return
+        path = os.path.join(BASE_DIR, "index.html")
+        with open(path, "rb") as f:
+            body = f.read()
+        self.send_response(404)
+        self._send_security_headers()
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def do_POST(self):
         ip = client_ip(self)
