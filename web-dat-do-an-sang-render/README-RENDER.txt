@@ -78,3 +78,50 @@ GIAO DIỆN MỚI (bản cao cấp):
 - Thanh giỏ hàng nổi hình viên thuốc ở cuối màn hình, nút "Bắn đơn về quán" to, gradient vàng.
 - Thẻ đơn hiển thị đầy đủ: tên khách, giờ (giờ VN), hình thức/giờ nhận, ghi chú, từng món 1 dòng (tên × số lượng — đơn giá = thành tiền), tổng tiền to, huy hiệu trạng thái.
 - Tab "Quán - Đơn mới" (chỉ chủ quán): nút "📊 Xuất file tổng" tải file tong-hop-don-YYYYMMDD-HHmm.txt gồm tổng đơn, tổng doanh thu, đếm theo trạng thái, doanh thu theo từng món (cao → thấp), rồi chi tiết đầy đủ từng đơn. Nút "Xuất tất cả đơn (.txt)" cũ vẫn còn.
+
+UI/UX MƯỢT MÀ HƠN + CHỐNG SPAM + BẢO MẬT (bản cập nhật 07/11/2026):
+- UI mượt hơn: chuyển cảnh mờ dần khi đổi tab, thanh giỏ nảy nhẹ khi thêm món,
+  nút bấm có phản hồi, tìm món debounce 200ms (gõ nhanh không giật), skeleton
+  loading khi đang tải thực đơn, cuộn mượt, tôn trọng chế độ "giảm chuyển động"
+  của điện thoại. Vẫn chỉ dùng font hệ thống, không tải thêm gì nên web nhẹ như cũ.
+- Chống bấm 2 lần: nút "Bắn đơn về quán" tự khóa trong lúc đang gửi đơn
+  (hiện "Đang gửi đơn…"), tránh double-tap tạo 2 đơn trùng.
+- Chống spam (máy chủ): mỗi IP tối đa 10 lần đặt đơn / 10 lần đăng nhập /
+  5 lần đăng ký trong 1 phút, vượt quá trả lỗi 429 "Bạn thao tác quá nhanh...";
+  2 đơn liên tiếp từ cùng 1 IP hoặc cùng 1 tên phải cách nhau ít nhất 3 giây;
+  ô honeypot ẩn + đơn gửi dưới 0.8 giây sau khi mở trang bị chặn (chống bot);
+  mỗi đơn tối đa 20 món, mỗi món tối đa 10 phần; tên tối đa 50 ký tự.
+  Khách đặt bình thường (vài giây 1 đơn) không bị ảnh hưởng. Lần chặn nào
+  máy chủ cũng ghi log "CHẶN" kèm lý do để chủ quán kiểm tra.
+- Bảo mật: mọi phản hồi đều có header X-Content-Type-Options, X-Frame-Options
+  (chống nhúng web vào iframe lạ), Referrer-Policy, Content-Security-Policy
+  (chỉ cho tải từ chính web này), Permissions-Policy; giới hạn body 64KB
+  (quá lớn trả 413), API POST chỉ nhận JSON (sai định dạng trả 415);
+  mọi chữ khách nhập (tên, ghi chú...) đều được lọc ký tự lạ và giới hạn độ dài,
+  khi hiển thị đều escape để không chèn được mã HTML; header Server không còn
+  lộ phiên bản Python; mật khẩu vẫn mã hóa PBKDF2, mã hủy đơn vẫn chỉ lưu
+  dạng SHA-256 như trước.
+
+CHẶN SPAM REFRESH + BẢO MẬT THÊM (bản cập nhật 07/11/2026):
+- Chặn spam refresh (trình duyệt): mỗi tab đếm số lần tải trang trong 10 giây,
+  quá 5 lần thì hiện màn hình chờ toàn trang "Bạn tải lại trang quá nhanh"
+  kèm đếm ngược, hết giờ mới cho dùng tiếp (giỏ hàng vẫn giữ nguyên).
+  Tải lại 1-2 lần bình thường không bao giờ bị chặn. Cảnh báo beforeunload
+  cũ (hỏi trước khi tải lại lúc giỏ đang có món) vẫn giữ nguyên.
+- Chặn spam refresh (máy chủ): cùng 1 IP tải trang hoặc gọi thực đơn quá
+  30 lần/phút sẽ bị trả 429 "Bạn tải lại trang quá nhanh...". Riêng việc
+  tự làm mới danh sách đơn mỗi 5 giây KHÔNG bị giới hạn nên chủ quán vẫn
+  xem đơn realtime bình thường.
+- Mã phiên đặt hàng: thực đơn (GET /api/menu) kèm 1 mã ngẫu nhiên, gắn với
+  IP, hạn 10 phút, chỉ dùng được cho 1 đơn thành công. Đơn POST bắt buộc
+  phải kèm mã này, không có mã hoặc mã sai/hết hạn sẽ bị từ chối 403.
+  Nếu mã hết hạn giữa chừng, trang tự lấy mã mới rồi gửi lại đơn 1 lần
+  nên khách thật không bị ảnh hưởng; bot POST thẳng không qua trang web
+  sẽ luôn thất bại.
+- Header bảo mật mới: Strict-Transport-Security (HSTS 1 năm), 
+  Cross-Origin-Resource-Policy: same-origin, X-Permitted-Cross-Domain-Policies:
+  none. Các header cũ giữ nguyên.
+- Chống đoán mật khẩu: đăng nhập sai 5 lần cho cùng 1 số điện thoại trong
+  10 phút thì khóa số đó 15 phút (trả 429, báo rõ bằng tiếng Việt).
+  Đăng nhập đúng sẽ xóa hết lịch sử sai. Chủ quán đăng nhập đúng như
+  bình thường không bị ảnh hưởng.

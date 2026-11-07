@@ -156,6 +156,28 @@ pre.order-text{background:#141210;color:#4ade80;padding:16px;border-radius:14px;
 .success-head .check{flex:0 0 auto;width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#bbf7d0,#16a34a);border:3px solid #16a34a;display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;box-shadow:0 6px 16px rgba(22,163,74,.35)}
 .authbar-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #cancel-notices .msg{margin:6px 0}
+/* ===== Muot ma (UI/UX): chuyen dong nhe, ton trong giam chuyen dong ===== */
+html{scroll-behavior:smooth}
+section.active{animation:fadeUp .28s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+#cartbar{transition:transform .3s ease,opacity .3s ease}
+#cartbar.cart-bump{animation:cartBump .3s ease}
+@keyframes cartBump{0%{transform:translateX(-50%) scale(1)}40%{transform:translateX(-50%) scale(1.03)}100%{transform:translateX(-50%) scale(1)}}
+.order{animation:fadeUp .25s ease both}
+.dish .qty span{transition:transform .15s ease}
+button:disabled{opacity:.6;cursor:not-allowed;transform:none!important;box-shadow:0 3px 0 var(--ink)}
+/* Skeleton khi dang tai thuc don */
+.skeleton{pointer-events:none;background:#fff}
+.skeleton .sk{border-radius:12px;background:linear-gradient(90deg,#f3ead0 25%,#fbf5dd 50%,#f3ead0 75%);background-size:200% 100%;animation:shimmer 1.2s infinite linear}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+/* ===== Chan spam refresh: lop phu toan man hinh khi tai lai trang qua nhanh ===== */
+#refresh-block{position:fixed;inset:0;z-index:100;background:rgba(20,16,8,.93);display:flex;align-items:center;justify-content:center;padding:20px}
+#refresh-block .rb-card{background:#fff;border-radius:20px;padding:28px 24px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+#refresh-block .rb-count{font-size:56px;font-weight:900;color:var(--red);line-height:1;margin:10px 0}
 @media(max-width:640px){
   header h1{font-size:27px}
   header::before{font-size:32px}
@@ -256,8 +278,12 @@ pre.order-text{background:#141210;color:#4ade80;padding:16px;border-radius:14px;
         </select>
         <label>Giờ muốn nhận món (không bắt buộc)</label><input id="co-time" placeholder="Ví dụ: 7h30 sáng nay, hoặc Càng sớm càng tốt">
         <label>Ghi chú (không bắt buộc)</label><textarea id="co-note" rows="2" placeholder="VD: ít cay, thêm tương ớt..."></textarea>
+        <!-- Honeypot chong bot: o an, nguoi that khong bao gio dien; bot dien vao se bi may chu chan. -->
+        <div style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden" aria-hidden="true">
+          <label>Website <input id="co-website" name="website" tabindex="-1" autocomplete="off"></label>
+        </div>
         <div id="msg-order"></div>
-        <br><button class="btn btn-block btn-cta" onclick="placeOrder()">📤 Bắn đơn về quán</button>
+        <br><button id="btn-place-order" class="btn btn-block btn-cta" onclick="placeOrder()">📤 Bắn đơn về quán</button>
         <p class="hint">Đặt hàng chỉ cần tên, không cần đăng nhập, không cần số điện thoại hay địa chỉ. Đơn sẽ được lưu ngay trên máy chủ của quán.</p>
       </div>
     </div>
@@ -310,7 +336,19 @@ pre.order-text{background:#141210;color:#4ade80;padding:16px;border-radius:14px;
 
 <div id="cartbar">
   <span>🧺 <span id="cart-count">0</span> món &nbsp;|&nbsp; Tổng <span class="total" id="cartbar-total">0đ</span></span>
-  <button onclick="showSection('sec-menu');document.getElementById('cart-card').scrollIntoView()">Xem giỏ &amp; Đặt hàng →</button>
+  <button onclick="showSection('sec-menu');document.getElementById('cart-card').scrollIntoView({behavior:'smooth'})">Xem giỏ &amp; Đặt hàng →</button>
+</div>
+
+<!-- Chan spam refresh: hien khi tai lai trang qua 5 lan trong 10 giay, chan
+     tuong tac den khi het dem nguoc. Gio hang van duoc giu nguyen. -->
+<div id="refresh-block" class="hidden">
+  <div class="rb-card">
+    <div style="font-size:44px">⏳</div>
+    <h2 style="margin-top:8px">Bạn tải lại trang quá nhanh</h2>
+    <p class="muted" style="margin-top:6px">Vui lòng chờ một chút rồi thử lại. Giỏ hàng của bạn vẫn được giữ nguyên.</p>
+    <div class="rb-count" id="refresh-block-count">10</div>
+    <p class="muted">giây nữa...</p>
+  </div>
 </div>
 
 <script>
@@ -328,6 +366,10 @@ let shopSeenIds = new Set(); // id don chu quan da thay o tab "Quan - Don moi"
 let ownerDeletedIds = new Set(); // id don chu quan tu tay xoa (khong bao "khach huy")
 let cancelNotices = []; // thong bao don bi khach huy, moi nhat len dau (toi da 5)
 let audioCtx = null;
+let pageLoadedAt = Date.now(); // moc thoi gian mo trang (chong bot dat don sieu nhanh)
+let placingOrder = false; // khoa nut dat don khi dang gui -> chong bam 2 lan
+let authBusy = false; // khoa nut dang ky / dang nhap khi dang gui
+let orderToken = ""; // ma phien dat hang lay tu GET /api/menu (han 10 phut, 1 don)
 // Ma huy don cua khach vang lai: luu tren trinh duyet nay theo ma don.
 function getCancelToken(id){ return localStorage.getItem("bms_cancel_" + id) || ""; }
 function saveCancelToken(id, token){ if(token) localStorage.setItem("bms_cancel_" + id, token); }
@@ -337,7 +379,17 @@ function fmt(n){ return n.toLocaleString("vi-VN") + "đ"; }
 function normPhone(p){ return (p||"").replace(/\D/g,""); }
 function getToken(){ return localStorage.getItem("bms_token") || ""; }
 function getUser(){ try { return JSON.parse(localStorage.getItem("bms_user") || "null"); } catch(e){ return null; } }
-function msg(id, text, ok){ const el=document.getElementById(id); if(!el) return; el.innerHTML = text ? '<div class="msg '+(ok?'ok':'err')+'">'+text+'</div>' : ''; }
+function msg(id, text, ok){
+  const el=document.getElementById(id); if(!el) return;
+  // Dung textContent (khong dung innerHTML voi chuoi truyen vao) de tranh
+  // HTML injection neu thong bao loi tu may chu chua noi dung nguoi dung.
+  el.innerHTML = "";
+  if(!text) return;
+  const d = document.createElement("div");
+  d.className = "msg " + (ok ? "ok" : "err");
+  d.textContent = text;
+  el.appendChild(d);
+}
 async function api(path, opts){
   opts = opts || {};
   const headers = {"Content-Type":"application/json"};
@@ -399,18 +451,24 @@ function renderAuth(){
 }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 async function doRegister(){
-  const r = await api("/api/register", {method:"POST", body:{name:document.getElementById("reg-name").value, phone:document.getElementById("reg-phone").value, password:document.getElementById("reg-pass").value}});
-  msg("msg-auth", r.ok ? (r.message||"Đăng ký thành công, mời đăng nhập") : (r.error||"Đăng ký thất bại"), !!r.ok);
-  if(r.ok) authTab("login");
+  if(authBusy) return; authBusy = true;
+  try{
+    const r = await api("/api/register", {method:"POST", body:{name:document.getElementById("reg-name").value, phone:document.getElementById("reg-phone").value, password:document.getElementById("reg-pass").value}});
+    msg("msg-auth", r.ok ? (r.message||"Đăng ký thành công, mời đăng nhập") : (r.error||"Đăng ký thất bại"), !!r.ok);
+    if(r.ok) authTab("login");
+  }finally{ authBusy = false; }
 }
 async function doLogin(){
-  const r = await api("/api/login", {method:"POST", body:{phone:document.getElementById("login-phone").value, password:document.getElementById("login-pass").value}});
-  if(!r.ok){ msg("msg-auth", r.error||"Đăng nhập thất bại"); return; }
-  localStorage.setItem("bms_token", r.token);
-  localStorage.setItem("bms_user", JSON.stringify(r.user));
-  seenOrderIds.clear(); shopSeenIds.clear(); ownerDeletedIds.clear(); cancelNotices = []; lastShopMaxId = 0; // dang nhap moi: don hien co khong tinh la don moi
-  msg("msg-auth", "Đăng nhập thành công!", true);
-  renderAuth();
+  if(authBusy) return; authBusy = true;
+  try{
+    const r = await api("/api/login", {method:"POST", body:{phone:document.getElementById("login-phone").value, password:document.getElementById("login-pass").value}});
+    if(!r.ok){ msg("msg-auth", r.error||"Đăng nhập thất bại"); return; }
+    localStorage.setItem("bms_token", r.token);
+    localStorage.setItem("bms_user", JSON.stringify(r.user));
+    seenOrderIds.clear(); shopSeenIds.clear(); ownerDeletedIds.clear(); cancelNotices = []; lastShopMaxId = 0; // dang nhap moi: don hien co khong tinh la don moi
+    msg("msg-auth", "Đăng nhập thành công!", true);
+    renderAuth();
+  }finally{ authBusy = false; }
 }
 function doLogout(){
   localStorage.removeItem("bms_token"); localStorage.removeItem("bms_user");
@@ -430,9 +488,14 @@ function setCat(c){
 }
 // Tim mon theo ten (chi loc o trinh duyet, khong goi may chu). Khi dang tim
 // thi tim tren toan bo thuc don, khong gioi han theo nhom dang chon.
+// Debounce 200ms: go phim nhanh khong ve lai danh sach lien tuc -> muot hon.
+let searchTimer = null;
 function onMenuSearch(v){
-  SEARCH = (v||"").trim().toLowerCase();
-  renderMenu();
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(()=>{
+    SEARCH = (v||"").trim().toLowerCase();
+    renderMenu();
+  }, 200);
 }
 function catLabel(cat){ return {"xoi":"🍚 Xôi Nóng","banhmi":"🥖 Bánh Mì","drink":"🥤 Drink"}[cat]||""; }
 // Icon rieng cho tung mon, dua theo ten mon (khong can anh ngoai).
@@ -520,6 +583,11 @@ function renderCart(){
   document.getElementById("cart-count").textContent = count;
   document.getElementById("cart-total").textContent = fmt(total);
   document.getElementById("cartbar-total").textContent = fmt(total);
+  // Nhay nhe thanh gio khi so luong thay doi (phan hoi truc quan).
+  if(count > 0){
+    const bar = document.getElementById("cartbar");
+    if(bar){ bar.classList.remove("cart-bump"); void bar.offsetWidth; bar.classList.add("cart-bump"); }
+  }
   const el = document.getElementById("cart-list");
   const ids = Object.keys(cart);
   if(!ids.length){ el.innerHTML = "<p class='muted'>Chưa chọn món nào.</p>"; return; }
@@ -530,21 +598,36 @@ function renderCart(){
   }).join("");
 }
 async function placeOrder(){
+  if(placingOrder) return; // chong bam 2 lan / double-tap tao 2 don
   const items = Object.keys(cart).map(id=>({id:parseInt(id), qty:cart[id]}));
   if(!items.length){ msg("msg-order", "Giỏ hàng đang trống, hãy chọn món trước."); return; }
   const name = document.getElementById("co-name").value.trim();
   if(!name){ msg("msg-order", "Vui lòng nhập tên khách hàng."); return; }
-  const r = await api("/api/order", {method:"POST", body:{items, note:document.getElementById("co-note").value, name, method:document.getElementById("co-method").value, time:document.getElementById("co-time").value}});
-  if(!r.ok){ msg("msg-order", r.error||"Đặt hàng thất bại."); return; }
-  lastOrderText = r.order_text;
-  lastOrderId = r.order_id;
-  if(r.cancel_token) saveCancelToken(r.order_id, r.cancel_token);
-  document.getElementById("success-text").textContent = r.order_text;
-  document.getElementById("success-card").classList.remove("hidden");
-  document.getElementById("success-card").scrollIntoView();
-  msg("msg-order", "Đặt hàng thành công! Đơn #" + r.order_id + " — tổng " + fmt(r.total), true);
-  cart = {}; localStorage.setItem("bms_cart", "{}");
-  renderMenu(); renderCart();
+  const btn = document.getElementById("btn-place-order");
+  placingOrder = true;
+  if(btn){ btn.disabled = true; btn.textContent = "⏳ Đang gửi đơn…"; }
+  try{
+    const body = {items, note:document.getElementById("co-note").value, name, method:document.getElementById("co-method").value, time:document.getElementById("co-time").value, website:document.getElementById("co-website").value, form_time_ms: Date.now() - pageLoadedAt, order_token: orderToken};
+    let r = await api("/api/order", {method:"POST", body});
+    // Ma phien het han / khong hop le: lay ma moi tu /api/menu roi gui lai 1 lan.
+    if(!r.ok && r.code === "order_token_expired"){
+      const m = await api("/api/menu");
+      if(m.ok){ MENU = m.menu; orderToken = m.order_token || ""; body.order_token = orderToken; r = await api("/api/order", {method:"POST", body}); }
+    }
+    if(!r.ok){ msg("msg-order", r.error||"Đặt hàng thất bại."); return; }
+    lastOrderText = r.order_text;
+    lastOrderId = r.order_id;
+    if(r.cancel_token) saveCancelToken(r.order_id, r.cancel_token);
+    document.getElementById("success-text").textContent = r.order_text;
+    document.getElementById("success-card").classList.remove("hidden");
+    document.getElementById("success-card").scrollIntoView({behavior:"smooth", block:"start"});
+    msg("msg-order", "Đặt hàng thành công! Đơn #" + r.order_id + " — tổng " + fmt(r.total), true);
+    cart = {}; localStorage.setItem("bms_cart", "{}");
+    renderMenu(); renderCart();
+  }finally{
+    placingOrder = false;
+    if(btn){ btn.disabled = false; btn.textContent = "📤 Bắn đơn về quán"; }
+  }
 }
 function copyOrderText(){
   const t = lastOrderText || document.getElementById("success-text").textContent;
@@ -569,7 +652,7 @@ function sendZalo(){
 function resetAfterOrder(){
   document.getElementById("success-card").classList.add("hidden");
   document.getElementById("co-note").value = "";
-  window.scrollTo(0,0);
+  window.scrollTo({top:0, behavior:"smooth"});
 }
 function statusLabel(s){ return {"moi":"Mới","xac-nhan":"Đã xác nhận","hoan-thanh":"Hoàn thành","huy":"Đã hủy"}[s]||s; }
 // Chi tiet day du cua 1 don, dung chung cho the don (HTML) va file tong (text).
@@ -809,10 +892,75 @@ async function pollOrders(){
 }
 setInterval(pollOrders, 5000);
 document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) pollOrders(); });
+// Chan spam refresh (theo tab trinh duyet): dem so lan tai trang trong 10
+// giay qua (luu sessionStorage). Qua 5 lan -> tra ve so giay phai cho
+// (den khi lan tai cu nhat roi khoi cua so 10 giay). Tai 1-2 lan binh
+// thuong luon tra ve 0, khong bao gio bi chan.
+const REFRESH_MAX_LOADS = 5;
+const REFRESH_WINDOW_MS = 10000;
+function checkRefreshSpam(){
+  try{
+    const now = Date.now();
+    let loads = [];
+    try{ loads = JSON.parse(sessionStorage.getItem("bms_loads") || "[]"); }catch(e){ loads = []; }
+    loads = loads.filter(t=> now - t < REFRESH_WINDOW_MS);
+    loads.push(now);
+    sessionStorage.setItem("bms_loads", JSON.stringify(loads));
+    if(loads.length > REFRESH_MAX_LOADS){
+      return Math.max(1, Math.ceil((loads[0] + REFRESH_WINDOW_MS - now) / 1000));
+    }
+  }catch(e){}
+  return 0;
+}
+// Hien lop phu chan tuong tac + dem nguoc; het gio thi tu an, xoa dem
+// (nguoi dung bat dau lai tu dau) roi moi mo khoa cho init chay tiep.
+function showRefreshBlock(seconds){
+  const box = document.getElementById("refresh-block");
+  const num = document.getElementById("refresh-block-count");
+  if(!box || !num) return Promise.resolve();
+  let left = seconds;
+  num.textContent = left;
+  box.classList.remove("hidden");
+  return new Promise(res=>{
+    const timer = setInterval(()=>{
+      left--;
+      if(left <= 0){
+        clearInterval(timer);
+        box.classList.add("hidden");
+        try{ sessionStorage.removeItem("bms_loads"); }catch(e){}
+        res();
+      } else {
+        num.textContent = left;
+      }
+    }, 1000);
+  });
+}
+// Chan refresh / dong trang vo tinh khi gio hang dang co mon hoac don dang gui:
+// trinh duyet se hien hop thoai xac nhan truoc khi tai lai trang.
+// (Gio hang da luu trong localStorage nen du co tai lai thi mon van con,
+// nhung canh bao nay giup khach khong bam nham F5 / vuot tai lai giua chung.)
+window.addEventListener("beforeunload", (e)=>{
+  const cartCount = Object.keys(cart).length;
+  if(placingOrder || cartCount > 0){
+    e.preventDefault();
+    e.returnValue = "";
+  }
+});
 (async function init(){
+  // Neu vua spam refresh thi chan tuong tac den khi het dem nguoc roi moi
+  // tai thuc don (may chu cung gioi han 30 lan tai trang / IP / phut).
+  const wait = checkRefreshSpam();
+  if(wait > 0){ await showRefreshBlock(wait); }
   updateNavVisibility(); // an tab chu quan ngay tu dau neu chua dang nhap chu quan
+  // Skeleton trong luc doi thuc don tu may chu (cam giac tai nhanh hon).
+  document.getElementById("menu-list").innerHTML = [1,2,3,4].map(()=>
+    '<div class="dish skeleton"><div class="sk" style="width:58px;height:58px;border-radius:16px"></div>'
+    + '<div class="dish-body"><div class="sk" style="height:18px;width:70%"></div>'
+    + '<div class="sk" style="height:13px;width:90%;margin-top:8px"></div>'
+    + '<div class="sk" style="height:18px;width:40%;margin-top:10px"></div></div></div>'
+  ).join("");
   const r = await api("/api/menu");
-  if(r.ok){ MENU = r.menu; updateCatCounts(); renderMenu(); renderCart(); renderAuth(); }
+  if(r.ok){ MENU = r.menu; orderToken = r.order_token || ""; updateCatCounts(); renderMenu(); renderCart(); renderAuth(); }
   else document.getElementById("menu-list").innerHTML = "<div class='card'><p class='muted'>Không tải được thực đơn. Hãy kiểm tra máy chủ đang chạy.</p></div>";
 })();
 </script>

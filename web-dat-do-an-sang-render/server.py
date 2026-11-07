@@ -12,6 +12,8 @@ import hashlib
 import json
 import os
 import secrets
+import time
+from collections import deque
 from datetime import datetime, timedelta, timezone
 # Gio Viet Nam (UTC+7) — may chu Render chay gio UTC nen phai cong 7 gio
 VN_TZ = timezone(timedelta(hours=7))
@@ -62,6 +64,175 @@ STATUS_LABEL = {"moi": "Mới", "xac-nhan": "Đã xác nhận", "hoan-thanh": "H
 
 LOCK = Lock()
 TOKENS = {}  # token -> phone (chi luu trong bo nho, khoi dong lai may chu thi dang nhap lai)
+
+# --- Bao mat & chong spam ---
+MAX_BODY_SIZE = 65536  # 64KB: moi request POST vuot qua deu bi tu choi (413)
+MAX_NAME_LEN = 50
+MAX_NOTE_LEN = 200
+MAX_METHOD_LEN = 30
+MAX_TIME_LEN = 50
+MAX_ADDRESS_LEN = 100
+MAX_QTY_PER_DISH = 10   # moi mon toi da 10 phan / don
+MAX_ITEMS_PER_ORDER = 20  # moi don toi da 20 mon (tong so luong)
+MIN_FORM_TIME_MS = 800  # don gui < 0.8 giay sau khi mo trang -> coi la bot
+ORDER_COOLDOWN_S = 3    # cung 1 IP / cung 1 ten: don thanh cong cach nhau it nhat 3 giay
+# Gioi han so request ghi / IP / phut: (so lan toi da, cua so giay)
+RATE_LIMITS = {"order": (10, 60), "login": (10, 60), "register": (5, 60), "other": (30, 60),
+               # Tai trang / goi thuc don: 30 lan / IP / phut (nguoi thuong chi tai
+               # 1-2 lan). KHONG gioi han /api/orders (polling 5 giay/lan la binh thuong).
+               "page": (30, 60), "menu": (30, 60)}
+_rate_buckets = {}   # (ip, key) -> deque[thoi diem monotonic]
+_rate_lock = Lock()
+_last_order_ip = {}    # ip -> thoi diem don thanh cong gan nhat
+_last_order_name = {}  # ten khach (viet thuong) -> thoi diem don thanh cong gan nhat
+
+# --- Ma phien dat hang (order token) ---
+# GET /api/menu cap 1 ma ngan han, gan voi IP, han 10 phut. Don POST bat
+# buoc phai kem ma nay: bot POST thang ma khong mo trang lay thuc don se bi
+# chan. Ma chi dung duoc cho 1 don thanh cong (xoa ngay khi don duoc tao).
+ORDER_TOKEN_TTL_S = 600  # 10 phut
+_order_tokens = {}  # token -> (ip, het han monotonic)
+_order_token_lock = Lock()
+
+# --- Khoa dang nhap khi doan mat khau sai nhieu lan ---
+# 5 lan sai cho cung 1 SDT trong 10 phut -> khoa SDT do 15 phut.
+LOGIN_MAX_FAILS = 5
+LOGIN_FAIL_WINDOW_S = 600   # 10 phut
+LOGIN_LOCK_S = 900          # 15 phut
+_login_failures = {}  # phone -> deque[thoi diem monotonic]
+_login_locks = {}     # phone -> het khoa monotonic
+_login_lock = Lock()
+
+
+def issue_order_token(ip):
+    """Cap ma phien dat hang moi cho IP nay; dong thoi don dep ma het han."""
+    now = time.monotonic()
+    with _order_token_lock:
+        expired = [t for t, (_, exp) in _order_tokens.items() if exp <= now]
+        for t in expired:
+            del _order_tokens[t]
+        token = secrets.token_hex(16)
+        _order_tokens[token] = (ip, now + ORDER_TOKEN_TTL_S)
+        return token
+
+
+def valid_order_token(token, ip):
+    """True neu ma ton tai, dung IP da cap va con han (chua xoa ma o day;
+    ma se bi xoa khi don thanh cong de chi dung duoc 1 lan)."""
+    if not token or not isinstance(token, str):
+        return False
+    now = time.monotonic()
+    with _order_token_lock:
+        rec = _order_tokens.get(token)
+        if not rec:
+            return False
+        tip, exp = rec
+        return tip == ip and exp > now
+
+
+def login_locked(phone):
+    """(True, so giay con lai) neu SDT dang bi khoa; het khoa thi tu mo."""
+    now = time.monotonic()
+    with _login_lock:
+        until = _login_locks.get(phone)
+        if until is not None:
+            if now < until:
+                return True, int(until - now)
+            del _login_locks[phone]
+        return False, 0
+
+
+def record_login_failure(phone):
+    """Ghi 1 lan dang nhap sai; du 5 lan trong 10 phut thi khoa 15 phut."""
+    now = time.monotonic()
+    with _login_lock:
+        dq = _login_failures.setdefault(phone, deque())
+        while dq and dq[0] <= now - LOGIN_FAIL_WINDOW_S:
+            dq.popleft()
+        dq.append(now)
+        if len(dq) >= LOGIN_MAX_FAILS:
+            _login_locks[phone] = now + LOGIN_LOCK_S
+            _login_failures.pop(phone, None)
+
+
+def clear_login_failures(phone):
+    """Dang nhap dung: xoa het lich su sai + mo khoa (neu co) cua SDT nay."""
+    with _login_lock:
+        _login_failures.pop(phone, None)
+        _login_locks.pop(phone, None)
+
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Content-Security-Policy": (
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+        "connect-src 'self'; font-src 'self'; object-src 'none'; "
+        "base-uri 'self'; frame-ancestors 'none'"
+    ),
+    "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "Cross-Origin-Resource-Policy": "same-origin",
+    "X-Permitted-Cross-Domain-Policies": "none",
+}
+
+
+def clean_text(s, max_len):
+    """Loai ky tu dieu khien (giu \n, \t), cat khoang trang 2 dau, gioi han do dai.
+    Dung cho ten, ghi chu, hinh thuc, gio nhan, dia chi truoc khi luu/hien."""
+    s = str(s or "")
+    s = "".join(ch for ch in s if ch in ("\n", "\t") or ord(ch) >= 32)
+    return s.strip()[:max_len]
+
+
+def client_ip(handler):
+    """IP that cua client. Render chay sau proxy nen uu tien X-Forwarded-For
+    (lay IP dau tien trong chuoi)."""
+    xff = handler.headers.get("X-Forwarded-For") or ""
+    if xff:
+        return xff.split(",")[0].strip() or handler.client_address[0]
+    return handler.client_address[0]
+
+
+def log_block(ip, reason):
+    print(f"CHẶN [{now_vn().strftime('%H:%M:%S')}] IP={ip} — {reason}")
+
+
+def rate_limited(ip, key):
+    """True neu IP vuot gioi han cua endpoint `key` trong cua so thoi gian.
+    Dem moi lan goi (ke ca request loi) de chan spam/flood."""
+    limit, window = RATE_LIMITS.get(key, RATE_LIMITS["other"])
+    now = time.monotonic()
+    with _rate_lock:
+        dq = _rate_buckets.setdefault((ip, key), deque())
+        while dq and dq[0] <= now - window:
+            dq.popleft()
+        if len(dq) >= limit:
+            return True
+        dq.append(now)
+        return False
+
+
+def order_cooldown_active(ip, name):
+    """True neu IP nay hoac ten khach nay vua dat don thanh cong chua du 3 giay."""
+    now = time.monotonic()
+    with _rate_lock:
+        last_ip = _last_order_ip.get(ip)
+        if last_ip is not None and now - last_ip < ORDER_COOLDOWN_S:
+            return True
+        last_name = _last_order_name.get(name.strip().lower())
+        if last_name is not None and now - last_name < ORDER_COOLDOWN_S:
+            return True
+        return False
+
+
+def mark_order_success(ip, name):
+    now = time.monotonic()
+    with _rate_lock:
+        _last_order_ip[ip] = now
+        _last_order_name[name.strip().lower()] = now
 
 
 def norm_phone(p):
@@ -140,19 +311,42 @@ def order_text(order):
 
 
 class Handler(BaseHTTPRequestHandler):
+    # An phien ban may chu that (khong lo Python/BaseHTTP version ra header Server).
+    server_version = "MayChu"
+    sys_version = ""
+
+    def version_string(self):
+        # Mac dinh BaseHTTPRequestHandler ghep "MayChu " + "" (them khoang
+        # trang thua); tra ve dung "MayChu" cho sach.
+        return "MayChu"
+
     # --- helpers ---
-    def send_json(self, code, obj):
+    def _send_security_headers(self):
+        for k, v in SECURITY_HEADERS.items():
+            self.send_header(k, v)
+
+    def send_json(self, code, obj, extra_headers=None):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
         self.send_response(code)
+        self._send_security_headers()
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        if extra_headers:
+            for k, v in extra_headers.items():
+                self.send_header(k, v)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
 
     def read_json(self):
-        length = int(self.headers.get("Content-Length") or 0)
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
         if length <= 0:
             return {}
+        if length > MAX_BODY_SIZE:
+            return None
         raw = self.rfile.read(length)
         try:
             return json.loads(raw.decode("utf-8"))
@@ -171,18 +365,33 @@ class Handler(BaseHTTPRequestHandler):
 
     # --- static ---
     def do_GET(self):
+        ip = client_ip(self)
         if self.path in ("/", "/index.html"):
+            # Chan spam refresh: cung 1 IP tai trang qua 30 lan/phut -> 429.
+            if rate_limited(ip, "page"):
+                log_block(ip, "tai lai trang qua nhanh -> /")
+                self.send_json(429, {"ok": False, "error": "Bạn tải lại trang quá nhanh, vui lòng chờ một chút rồi thử lại"},
+                              extra_headers={"Retry-After": "60"})
+                return
             path = os.path.join(BASE_DIR, "index.html")
             with open(path, "rb") as f:
                 body = f.read()
             self.send_response(200)
+            self._send_security_headers()
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
             return
         if self.path == "/api/menu":
-            self.send_json(200, {"ok": True, "menu": MENU})
+            # Chan spam goi thuc don lien tuc; dong thoi cap ma phien dat hang
+            # (ma nay bat buoc phai kem theo khi POST /api/order).
+            if rate_limited(ip, "menu"):
+                log_block(ip, "goi /api/menu qua nhanh")
+                self.send_json(429, {"ok": False, "error": "Bạn tải lại trang quá nhanh, vui lòng chờ một chút rồi thử lại"},
+                              extra_headers={"Retry-After": "60"})
+                return
+            self.send_json(200, {"ok": True, "menu": MENU, "order_token": issue_order_token(ip)})
             return
         if self.path == "/api/orders":
             phone = self.auth_phone()
@@ -200,14 +409,42 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(404, {"ok": False, "error": "Không tìm thấy"})
 
     def do_POST(self):
+        ip = client_ip(self)
+        # 1. Chan body qua lon truoc khi doc (64KB).
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        if length > MAX_BODY_SIZE:
+            log_block(ip, f"body qua lon ({length} bytes) -> {self.path}")
+            self.send_json(413, {"ok": False, "error": "Dữ liệu gửi lên quá lớn, vui lòng thử lại"})
+            return
+        # 2. Gioi han tan suat theo IP tren tung endpoint ghi.
+        rate_key = {
+            "/api/order": "order", "/api/login": "login", "/api/register": "register",
+        }.get(self.path, "other")
+        if rate_limited(ip, rate_key):
+            log_block(ip, f"vuot gioi han tan suat ({rate_key}) -> {self.path}")
+            self.send_json(429, {"ok": False, "error": "Bạn thao tác quá nhanh, vui lòng chờ một chút rồi thử lại"},
+                          extra_headers={"Retry-After": "60"})
+            return
+        # 3. API POST chi nhan JSON.
+        if length > 0:
+            ctype = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            if ctype != "application/json":
+                self.send_json(415, {"ok": False, "error": "Dữ liệu gửi lên phải là JSON"})
+                return
         data = self.read_json()
         if data is None:
             self.send_json(400, {"ok": False, "error": "Body phải là JSON"})
             return
+        if not isinstance(data, dict):
+            self.send_json(400, {"ok": False, "error": "Body phải là JSON object"})
+            return
 
         if self.path == "/api/register":
             phone = norm_phone(data.get("phone"))
-            name = str(data.get("name") or "").strip()
+            name = clean_text(data.get("name"), MAX_NAME_LEN + 1)
             password = str(data.get("password") or "")
             if len(phone) < 9 or len(phone) > 11 or not phone.startswith("0"):
                 self.send_json(400, {"ok": False, "error": "Số điện thoại không hợp lệ (vd: 0358961119)"})
@@ -215,8 +452,11 @@ class Handler(BaseHTTPRequestHandler):
             if not name:
                 self.send_json(400, {"ok": False, "error": "Vui lòng nhập tên"})
                 return
-            if len(password) < 4:
-                self.send_json(400, {"ok": False, "error": "Mật khẩu ít nhất 4 ký tự"})
+            if len(name) > MAX_NAME_LEN:
+                self.send_json(400, {"ok": False, "error": f"Tên quá dài (tối đa {MAX_NAME_LEN} ký tự)"})
+                return
+            if len(password) < 4 or len(password) > 100:
+                self.send_json(400, {"ok": False, "error": "Mật khẩu từ 4 đến 100 ký tự"})
                 return
             with LOCK:
                 users = load_json(USERS_FILE, [])
@@ -235,12 +475,26 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/login":
             phone = norm_phone(data.get("phone"))
             password = str(data.get("password") or "")
+            # Khoa SDT khi doan sai qua nhieu lan: 5 lan sai trong 10 phut
+            # -> khoa 15 phut (429). Kiem tra truoc khi doi mat khau.
+            locked, retry_s = login_locked(phone)
+            if locked:
+                log_block(ip, f"SDT {phone} dang bi khoa dang nhap (con {retry_s}s)")
+                self.send_json(429, {"ok": False, "error": "Tài khoản này tạm khóa 15 phút do đăng nhập sai nhiều lần, vui lòng thử lại sau"},
+                              extra_headers={"Retry-After": str(retry_s)})
+                return
+            if len(password) > 100:
+                record_login_failure(phone)
+                self.send_json(401, {"ok": False, "error": "Số điện thoại hoặc mật khẩu sai"})
+                return
             ensure_owner_account()  # phong khi users.json bi mat ma may chu chua khoi dong lai
             users = load_json(USERS_FILE, [])
             user = next((u for u in users if norm_phone(u["phone"]) == phone), None)
             if not user or hash_password(password, user["salt"]) != user["password_hash"]:
+                record_login_failure(phone)
                 self.send_json(401, {"ok": False, "error": "Số điện thoại hoặc mật khẩu sai"})
                 return
+            clear_login_failures(phone)  # dang nhap dung: xoa lich su sai
             token = secrets.token_hex(16)
             TOKENS[token] = phone
             self.send_json(200, {
@@ -253,7 +507,31 @@ class Handler(BaseHTTPRequestHandler):
             # Dat hang CHI CAN TEN - khong can dang nhap, khong can SDT / dia chi.
             # Neu khach da dang nhap thi lay SDT/tai khoan neu co, khong bat buoc.
             phone = self.auth_phone() or ""
-            name = str(data.get("name") or "").strip()
+            # Ma phien dat hang: bat buoc phai lay tu GET /api/menu truoc
+            # (gan voi IP, han 10 phut). Bot POST thang khong co ma -> 403.
+            # Frontend gap loi nay se tu lay ma moi roi gui lai 1 lan.
+            order_token = data.get("order_token")
+            if not valid_order_token(order_token, ip):
+                log_block(ip, "don khong co ma phien hop le -> /api/order")
+                self.send_json(403, {"ok": False, "code": "order_token_expired",
+                                     "error": "Phiên đặt hàng đã hết hạn, vui lòng tải lại trang rồi đặt lại"})
+                return
+            # Chong bot: honeypot — o "website" an tren form, nguoi that luon de
+            # trong; bot dien vao thi bi chan (tra loi chung chung de khong lo).
+            if str(data.get("website") or "").strip():
+                log_block(ip, "honeypot co gia tri -> /api/order")
+                self.send_json(400, {"ok": False, "error": "Đặt hàng thất bại, vui lòng thử lại"})
+                return
+            # Chong bot: don gui qua nhanh sau khi mo trang (< 0.8 giay).
+            try:
+                form_time = int(data.get("form_time_ms"))
+            except Exception:
+                form_time = None
+            if form_time is not None and form_time < MIN_FORM_TIME_MS:
+                log_block(ip, f"don gui qua nhanh ({form_time}ms) -> /api/order")
+                self.send_json(400, {"ok": False, "error": "Đặt hàng thất bại, vui lòng thử lại"})
+                return
+            name = clean_text(data.get("name"), MAX_NAME_LEN + 1)
             if not name and phone:
                 users = load_json(USERS_FILE, [])
                 user = next((u for u in users if norm_phone(u["phone"]) == norm_phone(phone)), None)
@@ -262,22 +540,40 @@ class Handler(BaseHTTPRequestHandler):
             if not name:
                 self.send_json(400, {"ok": False, "error": "Vui lòng nhập tên khách hàng"})
                 return
+            if len(name) > MAX_NAME_LEN:
+                self.send_json(400, {"ok": False, "error": f"Tên quá dài (tối đa {MAX_NAME_LEN} ký tự)"})
+                return
+            # Chong spam: cung 1 IP / cung 1 ten vua dat don xong thi phai doi 3 giay.
+            if order_cooldown_active(ip, name):
+                log_block(ip, f"don cach nhau < {ORDER_COOLDOWN_S}s (ten: {name})")
+                self.send_json(429, {"ok": False, "error": "Bạn vừa đặt đơn, vui lòng chờ vài giây rồi đặt tiếp"},
+                              extra_headers={"Retry-After": "3"})
+                return
             items_in = data.get("items") or []
-            address = str(data.get("address") or "").strip()  # tuy chon
-            note = str(data.get("note") or "").strip()
-            method = str(data.get("method") or data.get("delivery") or "").strip()
-            time = str(data.get("time") or data.get("delivery_time") or "").strip()
+            address = clean_text(data.get("address"), MAX_ADDRESS_LEN)  # tuy chon
+            note = clean_text(data.get("note"), MAX_NOTE_LEN)
+            method = clean_text(data.get("method") or data.get("delivery"), MAX_METHOD_LEN)
+            time = clean_text(data.get("time") or data.get("delivery_time"), MAX_TIME_LEN)
             if not isinstance(items_in, list) or not items_in:
                 self.send_json(400, {"ok": False, "error": "Giỏ hàng đang trống"})
                 return
-            items, total = [], 0
+            if len(items_in) > MAX_ITEMS_PER_ORDER:
+                self.send_json(400, {"ok": False, "error": f"Mỗi đơn tối đa {MAX_ITEMS_PER_ORDER} món"})
+                return
+            items, total, total_qty = [], 0, 0
             for raw in items_in:
+                if not isinstance(raw, dict):
+                    continue
                 try:
                     mid, qty = int(raw.get("id")), int(raw.get("qty"))
                 except Exception:
                     continue
-                if mid not in MENU_BY_ID or qty < 1 or qty > 99:
+                if mid not in MENU_BY_ID or qty < 1 or qty > MAX_QTY_PER_DISH:
                     continue
+                total_qty += qty
+                if total_qty > MAX_ITEMS_PER_ORDER:
+                    self.send_json(400, {"ok": False, "error": f"Mỗi đơn tối đa {MAX_ITEMS_PER_ORDER} món"})
+                    return
                 m = MENU_BY_ID[mid]
                 items.append({"id": mid, "name": m["name"], "price": m["price"], "qty": qty})
                 total += m["price"] * qty
@@ -303,6 +599,11 @@ class Handler(BaseHTTPRequestHandler):
                 save_json(ORDERS_FILE, orders)
                 with open(ORDERS_TXT, "a", encoding="utf-8") as f:
                     f.write(order["text"] + "\n\n")
+            mark_order_success(ip, name)  # bat dau dem cooldown 3 giay cho IP/ten nay
+            # Ma phien chi dung duoc cho 1 don thanh cong -> xoa ngay.
+            if isinstance(order_token, str):
+                with _order_token_lock:
+                    _order_tokens.pop(order_token, None)
             print(f"ĐƠN MỚI #{order_id} - {name} ({phone}) - {fmt(total)}")
             self.send_json(200, {"ok": True, "order_id": order_id, "total": total,
                                  "order_text": order["text"], "cancel_token": cancel_token})
